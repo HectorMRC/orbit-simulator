@@ -1,9 +1,9 @@
 [package]
 name = "globe-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
-description = "A library for geographic coordinates management"
+description = "A library for the management of geographic coordinates"
 readme = "./README.md"
 
 [dependencies]
