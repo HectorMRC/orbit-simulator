@@ -109,16 +109,16 @@ impl GeographicPoint {
     /// assert!(approx_eq!(f64, point.longitude(), -PI, ulps = 2));
     /// ```
     pub fn set_latitude(&mut self, value: f64) {
-        self.latitude = (-PI / 2.0..PI / 2.)
+        self.latitude = (-FRAC_PI_2..FRAC_PI_2)
             .contains(&value)
             .then_some(value)
             .unwrap_or_else(|| {
-                // The derivative of sin(x) is cos(x), and so, cos(x) determines the
-                // sign of the longitude of the point.
-                if value.cos().signum() != self.longitude.signum() {
-                    // Increasing the longitude of the point by π radiants (180º) ensures the
-                    // sign is changed while maintaining it in the same pair of
-                    // complementary meridians.
+                // The derivative of sin(x) is cos(x), and so, cos(x) determines if
+                // the sign of the longitude of the point must change.
+                if value.cos().is_sign_negative() {
+                    // Increasing the longitude of the point by π radiants (180º)
+                    // ensures the sign is changed while maintaining it in the same
+                    // pair of complementary meridians.
                     self.set_longitude(self.longitude.add(PI));
                 }
 
@@ -303,5 +303,126 @@ pub mod tests {
                 test_case.longitude
             );
         });
+    }
+
+    #[test]
+    fn long_ratio_must_not_exceed_boundaries() {
+        struct TestCase {
+            name: &'static str,
+            longitude: f64,
+            ratio: f64,
+        }
+
+        vec![
+            TestCase {
+                name: "zero longitude must be equals to zero",
+                longitude: 0.,
+                ratio: 0.,
+            },
+            TestCase {
+                // Since PI and -PI represents the same point, -PI is, for convenience,
+                // the only valid one for representing that point.
+                name: "positive longitude boundary must equals to negative one",
+                longitude: PI,
+                ratio: -1.,
+            },
+            TestCase {
+                name: "arbitrary positive longitude must be positive",
+                longitude: FRAC_PI_2,
+                ratio: 0.5,
+            },
+            TestCase {
+                name: "negative longitude boundary must equals to negative one",
+                longitude: -PI,
+                ratio: -1.,
+            },
+            TestCase {
+                name: "arbitrary negative longitude must be negative",
+                longitude: -FRAC_PI_2,
+                ratio: -0.5,
+            },
+        ]
+        .into_iter()
+        .for_each(|test_case| {
+            let point = GeographicPoint::default().with_longitude(test_case.longitude);
+            assert!(
+                approx_eq!(f64, point.long_ratio(), test_case.ratio, ulps = TOLERANCE),
+                "{}: {} ±t == {}",
+                test_case.name,
+                point.long_ratio(),
+                test_case.ratio
+            );
+        });
+    }
+
+    #[test]
+    fn lat_ratio_must_not_exceed_boundaries() {
+        struct TestCase {
+            name: &'static str,
+            latitude: f64,
+            ratio: f64,
+        }
+
+        vec![
+            TestCase {
+                name: "zero latitude must be equals to zero",
+                latitude: 0.,
+                ratio: 0.,
+            },
+            TestCase {
+                name: "positive latitude boundary must equals to one",
+                latitude: FRAC_PI_2,
+                ratio: 1.,
+            },
+            TestCase {
+                name: "arbitrary positive latitude must be positive",
+                latitude: FRAC_PI_2 / 2.,
+                ratio: 0.5,
+            },
+            TestCase {
+                name: "negative latitude boundary must equals to negative one",
+                latitude: -FRAC_PI_2,
+                ratio: -1.,
+            },
+            TestCase {
+                name: "arbitrary negative latitude must be negative",
+                latitude: -FRAC_PI_2 / 2.,
+                ratio: -0.5,
+            },
+        ]
+        .into_iter()
+        .for_each(|test_case| {
+            let point = GeographicPoint::default().with_latitude(test_case.latitude);
+            assert!(
+                approx_eq!(f64, point.lat_ratio(), test_case.ratio, ulps = TOLERANCE),
+                "{}: {} ±t == {}",
+                test_case.name,
+                point.lat_ratio(),
+                test_case.ratio
+            );
+        });
+    }
+
+    #[test]
+    fn basic_operations_must_be_consistent() {
+        let mut point = GeographicPoint::default()
+            .with_longitude(-FRAC_PI_2)
+            .with_latitude(FRAC_PI_2 / 2.);
+
+        point.set_latitude(point.latitude().add(PI));
+
+        assert!(
+            approx_eq!(f64, point.longitude(), FRAC_PI_2, ulps = TOLERANCE),
+            "longitude must swith to positive: {} ±t == {}",
+            point.longitude(),
+            FRAC_PI_2
+        );
+
+        assert!(
+            approx_eq!(f64, point.latitude(), -FRAC_PI_2 / 2., ulps = TOLERANCE),
+            "latitude must switch to negative: {} ±t == {}",
+            point.latitude(),
+            -FRAC_PI_2 / 2.
+        );
     }
 }
