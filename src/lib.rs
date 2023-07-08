@@ -413,7 +413,7 @@ pub mod tests {
 
         assert!(
             approx_eq!(f64, point.longitude(), FRAC_PI_2, ulps = TOLERANCE),
-            "longitude must swith to positive: {} ±t == {}",
+            "longitude must switch to positive: {} ±t == {}",
             point.longitude(),
             FRAC_PI_2
         );
