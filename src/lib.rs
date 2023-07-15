@@ -1,20 +1,68 @@
 //! Point definition and implementations.
 
 use std::ops::{Add, Mul, Sub};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 const PI: f64 = std::f64::consts::PI;
 const FRAC_PI_2: f64 = std::f64::consts::FRAC_PI_2;
 
 /// Represents a point in a three dimentional space using the geographic coordinate
 /// system (in radiants).
-#[derive(Debug, Default, Clone, Copy)]
+#[wasm_bindgen]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct GeographicPoint {
     longitude: f64,
     latitude: f64,
     altitude: f64,
 }
 
+impl From<CartesianPoint> for GeographicPoint {
+    fn from(value: CartesianPoint) -> Self {
+        GeographicPoint::from_cartesian(&value)
+    }
+}
+
+#[wasm_bindgen]
 impl GeographicPoint {
+    pub fn new(longitude: f64, latitude: f64, altitude: f64) -> Self {
+        Self {
+            longitude,
+            latitude,
+            altitude,
+        }
+    }
+
+    /// Returns the equivalent [`GeographicPoint`] of the given [`CartesianPoint`]
+    pub fn from_cartesian(point: &CartesianPoint) -> Self {
+        // see: https://en.wikipedia.org/wiki/Spherical_coordinate_system
+        let radius = f64::sqrt(point.x().powi(2) + point.y().powi(2) + point.z().powi(2));
+
+        let theta = match (point.x(), point.y(), point.z()) {
+            (x, y, z) if z > 0. => f64::atan(f64::sqrt(x.powi(2) + y.powi(2)) / z),
+            (x, y, z) if z < 0. => PI + f64::atan(f64::sqrt(x.powi(2) + y.powi(2)) / z),
+            (x, y, z) if z == 0. && x * y != 0. => FRAC_PI_2,
+            (x, y, z) if x == y && y == z => FRAC_PI_2, // fallback value
+
+            _ => FRAC_PI_2, // fallback value
+        };
+
+        let phi = match (point.x(), point.y()) {
+            (x, y) if x > 0. => f64::atan(y / x),
+            (x, y) if x < 0. && y >= 0. => f64::atan(y / x) + PI,
+            (x, y) if x < 0. && y < 0. => f64::atan(y / x) - PI,
+            (x, y) if x == 0. && y > 0. => FRAC_PI_2,
+            (x, y) if x == 0. && y < 0. => -FRAC_PI_2,
+            (x, y) if x == 0. && y == 0. => 0., // fallback value
+
+            _ => 0., // fallback value
+        };
+
+        Self::default()
+            .with_longitude(phi)
+            .with_latitude(FRAC_PI_2 - theta)
+            .with_altitude(radius)
+    }
+
     /// Calls set_longitude on self and returns it.
     pub fn with_longitude(mut self, value: f64) -> Self {
         self.set_longitude(value);
@@ -109,7 +157,7 @@ impl GeographicPoint {
     /// assert!(approx_eq!(f64, point.longitude(), -PI, ulps = 2));
     /// ```
     pub fn set_latitude(&mut self, value: f64) {
-        self.latitude = (-FRAC_PI_2..FRAC_PI_2)
+        self.latitude = (-FRAC_PI_2..=FRAC_PI_2)
             .contains(&value)
             .then_some(value)
             .unwrap_or_else(|| {
@@ -156,6 +204,81 @@ impl GeographicPoint {
     /// in a value in the range __\[-1.0, 1.0\]__
     pub fn lat_ratio(&self) -> f64 {
         self.latitude / FRAC_PI_2
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub struct CartesianPoint([f64; 3]);
+
+impl From<GeographicPoint> for CartesianPoint {
+    fn from(value: GeographicPoint) -> Self {
+        CartesianPoint::from_geographic(&value)
+    }
+}
+
+#[wasm_bindgen]
+impl CartesianPoint {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
+        Self([x, y, z])
+    }
+
+    /// Returns the equivalent [`CartesianPoint`] of the given [`GeographicPoint`]
+    pub fn from_geographic(point: &GeographicPoint) -> Self {
+        let radial_distance = match point.altitude() {
+            altitude if altitude == 0. => 1.,
+            altitude => altitude,
+        };
+
+        let theta = FRAC_PI_2 - point.latitude();
+        let phi = point.longitude();
+
+        // improve sin & cos precision for exact numbers
+        let precise_sin_cos = |rad: f64| -> (f64, f64) {
+            if rad.abs() == FRAC_PI_2 {
+                return (rad.signum(), 0.);
+            } else if rad.abs() == PI {
+                return (0., -1.);
+            } else if rad == 0. {
+                return (0., 1.);
+            }
+
+            (rad.sin(), rad.cos())
+        };
+
+        let (theta_sin, theta_cos) = precise_sin_cos(theta);
+        let (phi_sin, phi_cos) = precise_sin_cos(phi);
+
+        Self([
+            radial_distance * theta_sin * phi_cos,
+            radial_distance * theta_sin * phi_sin,
+            radial_distance * theta_cos,
+        ])
+    }
+
+    pub fn x(&self) -> f64 {
+        self.0[0]
+    }
+
+    pub fn set_x(&mut self, x: f64) {
+        self.0[0] = x;
+    }
+
+    pub fn y(&self) -> f64 {
+        self.0[1]
+    }
+
+    pub fn set_y(&mut self, y: f64) {
+        self.0[1] = y;
+    }
+
+    pub fn z(&self) -> f64 {
+        self.0[2]
+    }
+
+    pub fn set_z(&mut self, z: f64) {
+        self.0[2] = z;
     }
 }
 
@@ -424,5 +547,159 @@ pub mod tests {
             point.latitude(),
             -FRAC_PI_2 / 2.
         );
+    }
+
+    #[test]
+    fn cartesian_from_geographic_must_not_fail() {
+        struct TestCase {
+            name: &'static str,
+            geographic: GeographicPoint,
+            cartesian: CartesianPoint,
+        }
+
+        vec![
+            TestCase {
+                name: "north point",
+                geographic: GeographicPoint::default().with_latitude(FRAC_PI_2),
+                cartesian: CartesianPoint::new(0., 0., 1.),
+            },
+            TestCase {
+                name: "south point",
+                geographic: GeographicPoint::default().with_latitude(-FRAC_PI_2),
+                cartesian: CartesianPoint::new(0., 0., -1.),
+            },
+            TestCase {
+                name: "east point",
+                geographic: GeographicPoint::default().with_longitude(FRAC_PI_2),
+                cartesian: CartesianPoint::new(0., 1., 0.),
+            },
+            TestCase {
+                name: "weast point",
+                geographic: GeographicPoint::default().with_longitude(-FRAC_PI_2),
+                cartesian: CartesianPoint::new(0., -1., 0.),
+            },
+            TestCase {
+                name: "front point",
+                geographic: GeographicPoint::default(),
+                cartesian: CartesianPoint::new(1., 0., 0.),
+            },
+            TestCase {
+                name: "back point",
+                geographic: GeographicPoint::default().with_longitude(-PI),
+                cartesian: CartesianPoint::new(-1., 0., 0.),
+            },
+        ]
+        .into_iter()
+        .for_each(|test_case| {
+            let point = CartesianPoint::from(test_case.geographic);
+            point.0.iter().enumerate().for_each(|(index, ordinate)| {
+                assert!(
+                    approx_eq!(
+                        f64,
+                        *ordinate,
+                        test_case.cartesian.0[index],
+                        ulps = TOLERANCE
+                    ),
+                    "{}: {:#?} ±t == {:#?}",
+                    test_case.name,
+                    point,
+                    test_case.cartesian
+                );
+            });
+        });
+    }
+
+    #[test]
+    fn geographic_from_cartesian_must_not_fail() {
+        struct TestCase {
+            name: &'static str,
+            geographic: GeographicPoint,
+            cartesian: CartesianPoint,
+        }
+
+        vec![
+            TestCase {
+                name: "north point",
+                geographic: GeographicPoint::default()
+                    .with_latitude(FRAC_PI_2)
+                    .with_altitude(1.),
+                cartesian: CartesianPoint::new(0., 0., 1.),
+            },
+            TestCase {
+                name: "south point",
+                geographic: GeographicPoint::default()
+                    .with_latitude(-FRAC_PI_2)
+                    .with_altitude(1.),
+                cartesian: CartesianPoint::new(0., 0., -1.),
+            },
+            TestCase {
+                name: "east point",
+                geographic: GeographicPoint::default()
+                    .with_longitude(FRAC_PI_2)
+                    .with_altitude(1.),
+                cartesian: CartesianPoint::new(0., 1., 0.),
+            },
+            TestCase {
+                name: "weast point",
+                geographic: GeographicPoint::default()
+                    .with_longitude(-FRAC_PI_2)
+                    .with_altitude(1.),
+                cartesian: CartesianPoint::new(0., -1., 0.),
+            },
+            TestCase {
+                name: "front point",
+                geographic: GeographicPoint::default().with_altitude(1.),
+                cartesian: CartesianPoint::new(1., 0., 0.),
+            },
+            TestCase {
+                name: "back point",
+                geographic: GeographicPoint::default()
+                    .with_longitude(-PI)
+                    .with_altitude(1.),
+                cartesian: CartesianPoint::new(-1., 0., 0.),
+            },
+        ]
+        .into_iter()
+        .for_each(|test_case| {
+            let point = GeographicPoint::from(test_case.cartesian);
+            assert!(
+                approx_eq!(
+                    f64,
+                    point.longitude(),
+                    test_case.geographic.longitude(),
+                    ulps = TOLERANCE
+                ),
+                "{}: longitude {:#?} ±t == {:#?}",
+                test_case.name,
+                point.longitude(),
+                test_case.geographic.longitude(),
+            );
+
+            assert!(
+                approx_eq!(
+                    f64,
+                    point.latitude(),
+                    test_case.geographic.latitude(),
+                    ulps = TOLERANCE
+                ),
+                "{}: latitude {:#?} ±t == {:#?}",
+                test_case.name,
+                point.latitude(),
+                test_case.geographic.latitude(),
+            );
+
+            assert!(
+                approx_eq!(
+                    f64,
+                    point.altitude(),
+                    test_case.geographic.altitude(),
+                    ulps = TOLERANCE
+                ),
+                "{}: altitude {:#?} ±t == {:#?}",
+                test_case.name,
+                point.altitude(),
+                test_case.geographic.altitude(),
+            );
+        });
     }
 }
