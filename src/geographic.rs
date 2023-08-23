@@ -3,8 +3,7 @@ use std::f64::consts::{FRAC_PI_2, PI};
 use std::ops::{Add, Mul, Sub};
 use wasm_bindgen::prelude::wasm_bindgen;
 
-/// Represents a point in a three dimentional space using the geographic coordinate
-/// system (in radiants).
+/// Represents a point using the geographic system of coordinates.
 #[wasm_bindgen]
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct GeographicPoint {

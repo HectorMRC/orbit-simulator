@@ -6,6 +6,7 @@ use std::{
 };
 use wasm_bindgen::prelude::wasm_bindgen;
 
+/// Represents a point using the Cartesian system of coordinates.
 #[wasm_bindgen]
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct CartesianPoint(Vector3<f64>);
