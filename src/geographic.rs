@@ -209,7 +209,7 @@ mod tests {
     use super::*;
     use float_cmp::approx_eq;
 
-    const TOLERANCE: i64 = 2;
+    const ULPS: i64 = 2;
 
     #[test]
     fn longitude_must_not_exceed_boundaries() {
@@ -245,7 +245,7 @@ mod tests {
         .for_each(|test_case| {
             let point = GeographicPoint::default().with_longitude(test_case.input);
             assert!(
-                approx_eq!(f64, point.longitude, test_case.longitude, ulps = TOLERANCE),
+                approx_eq!(f64, point.longitude, test_case.longitude, ulps = ULPS),
                 "{}: {} ±t == {}",
                 test_case.name,
                 point.longitude,
@@ -288,7 +288,7 @@ mod tests {
         .for_each(|test_case| {
             let point = GeographicPoint::default().with_latitude(test_case.input);
             assert!(
-                approx_eq!(f64, point.latitude, test_case.latitude, ulps = TOLERANCE),
+                approx_eq!(f64, point.latitude, test_case.latitude, ulps = ULPS),
                 "{}: {} ±t == {}",
                 test_case.name,
                 point.latitude,
@@ -341,7 +341,7 @@ mod tests {
         .for_each(|test_case| {
             let point = GeographicPoint::default().with_latitude(test_case.input);
             assert!(
-                approx_eq!(f64, point.longitude, test_case.longitude, ulps = TOLERANCE),
+                approx_eq!(f64, point.longitude, test_case.longitude, ulps = ULPS),
                 "{}: {} ±t == {}",
                 test_case.name,
                 point.longitude,
@@ -391,7 +391,7 @@ mod tests {
         .for_each(|test_case| {
             let point = GeographicPoint::default().with_longitude(test_case.longitude);
             assert!(
-                approx_eq!(f64, point.long_ratio(), test_case.ratio, ulps = TOLERANCE),
+                approx_eq!(f64, point.long_ratio(), test_case.ratio, ulps = ULPS),
                 "{}: {} ±t == {}",
                 test_case.name,
                 point.long_ratio(),
@@ -439,7 +439,7 @@ mod tests {
         .for_each(|test_case| {
             let point = GeographicPoint::default().with_latitude(test_case.latitude);
             assert!(
-                approx_eq!(f64, point.lat_ratio(), test_case.ratio, ulps = TOLERANCE),
+                approx_eq!(f64, point.lat_ratio(), test_case.ratio, ulps = ULPS),
                 "{}: {} ±t == {}",
                 test_case.name,
                 point.lat_ratio(),
@@ -457,14 +457,14 @@ mod tests {
         point.set_latitude(point.latitude().add(PI));
 
         assert!(
-            approx_eq!(f64, point.longitude(), FRAC_PI_2, ulps = TOLERANCE),
+            approx_eq!(f64, point.longitude(), FRAC_PI_2, ulps = ULPS),
             "longitude must switch to positive: {} ±t == {}",
             point.longitude(),
             FRAC_PI_2
         );
 
         assert!(
-            approx_eq!(f64, point.latitude(), -FRAC_PI_2 / 2., ulps = TOLERANCE),
+            approx_eq!(f64, point.latitude(), -FRAC_PI_2 / 2., ulps = ULPS),
             "latitude must switch to negative: {} ±t == {}",
             point.latitude(),
             -FRAC_PI_2 / 2.
@@ -529,7 +529,7 @@ mod tests {
                     f64,
                     point.longitude(),
                     test_case.geographic.longitude(),
-                    ulps = TOLERANCE
+                    ulps = ULPS
                 ),
                 "{}: longitude {:#?} ±t == {:#?}",
                 test_case.name,
@@ -542,7 +542,7 @@ mod tests {
                     f64,
                     point.latitude(),
                     test_case.geographic.latitude(),
-                    ulps = TOLERANCE
+                    ulps = ULPS
                 ),
                 "{}: latitude {:#?} ±t == {:#?}",
                 test_case.name,
@@ -555,7 +555,7 @@ mod tests {
                     f64,
                     point.altitude(),
                     test_case.geographic.altitude(),
-                    ulps = TOLERANCE
+                    ulps = ULPS
                 ),
                 "{}: altitude {:#?} ±t == {:#?}",
                 test_case.name,

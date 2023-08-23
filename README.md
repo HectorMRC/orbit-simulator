@@ -7,4 +7,4 @@
 A library for the management of geographic coordinates.
 
 ## About
-This library provides a simple way to manipulate geographic coordinates while always maintaining consistent values. This means that, while the longitude does not take effect over any other ordinate, the latitude, on the other hand, may mutate the longitude depending on the magnitude of the overflow. For more information about this behavior, read the cargo-doc in this crate.
+This library provides a simple way to manipulate geographic coordinates while maintaining consistent values. Two coordinates systems are available: the [geographic coordinate system](https://en.wikipedia.org/wiki/Geographic_coordinate_system), which is made up of latitude, longitude, and altitude. And the [Cartesian coordinate system](https://en.wikipedia.org/wiki/Cartesian_coordinate_system), which is the regular one for representing arbitrary points in a three-dimensional space. Both of them can be converted from one to the other without restrictions but assuming a precision error, given the necessary operations for the conversion.

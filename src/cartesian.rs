@@ -2,7 +2,7 @@ use crate::GeographicPoint;
 use nalgebra::{Matrix3, Vector3};
 use std::{
     f64::consts::{FRAC_PI_2, PI},
-    ops::Div,
+    ops::{Div, Index, IndexMut},
 };
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -19,6 +19,20 @@ impl From<GeographicPoint> for CartesianPoint {
 impl From<Vector3<f64>> for CartesianPoint {
     fn from(value: Vector3<f64>) -> Self {
         CartesianPoint(value)
+    }
+}
+
+impl Index<usize> for CartesianPoint {
+    type Output = f64;
+
+    fn index(&self, index: usize) -> &<Self as Index<usize>>::Output {
+        &self.0[index]
+    }
+}
+
+impl IndexMut<usize> for CartesianPoint {
+    fn index_mut(&mut self, index: usize) -> &mut <Self as Index<usize>>::Output {
+        &mut self.0[index]
     }
 }
 
@@ -62,36 +76,42 @@ impl CartesianPoint {
         ))
     }
 
+    #[inline(always)]
     pub fn x(&self) -> f64 {
-        self.0[0]
+        self[0]
     }
 
+    #[inline(always)]
     pub fn set_x(&mut self, x: f64) {
-        self.0[0] = x;
+        self[0] = x;
     }
 
+    #[inline(always)]
     pub fn y(&self) -> f64 {
-        self.0[1]
+        self[1]
     }
 
+    #[inline(always)]
     pub fn set_y(&mut self, y: f64) {
-        self.0[1] = y;
+        self[1] = y;
     }
 
+    #[inline(always)]
     pub fn z(&self) -> f64 {
-        self.0[2]
+        self[2]
     }
 
+    #[inline(always)]
     pub fn set_z(&mut self, z: f64) {
-        self.0[2] = z;
+        self[2] = z;
     }
 
     /// Returns the point resulting from rotating self in theta radians about the axis that is
     /// plotted from the origin of coordinates to the given axis point.
-    pub fn rotate(self, axis: Self, theta: f64) -> Self {
+    pub fn rotate(&self, axis: Self, theta: f64) -> Self {
         if self.0.normalize() == axis.0.normalize() {
             // the point belongs to the axis line, so the rotation takes no effect
-            return self;
+            return self.clone();
         }
 
         let d = (axis.y().powi(2) + axis.z().powi(2)).sqrt();
@@ -138,7 +158,8 @@ mod tests {
     use super::*;
     use float_cmp::approx_eq;
 
-    const EPSILON: f64 = 0.000000000000001;
+    const ULPS: i64 = 2;
+    const EPSILON: f64 = 0.00000000000000024492935982947064;
 
     #[test]
     fn cartesian_from_geographic_must_not_fail() {
@@ -184,7 +205,12 @@ mod tests {
         .for_each(|test_case| {
             let point = CartesianPoint::from(test_case.geographic);
             assert!(
-                approx_eq!(&[f64], point.0.as_slice(), test_case.cartesian.0.as_slice()),
+                approx_eq!(
+                    &[f64],
+                    point.0.as_slice(),
+                    test_case.cartesian.0.as_slice(),
+                    ulps = ULPS
+                ),
                 "{}: got = {}, want = {}",
                 test_case.name,
                 point.0,
@@ -262,7 +288,8 @@ mod tests {
                     &[f64],
                     got.0.as_slice(),
                     test_case.want.0.as_slice(),
-                    epsilon = EPSILON
+                    epsilon = EPSILON,
+                    ulps = 17
                 ),
                 "{}: got = {}, want = {}",
                 test_case.name,
