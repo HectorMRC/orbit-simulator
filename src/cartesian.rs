@@ -2,7 +2,7 @@ use crate::GeographicPoint;
 use nalgebra::{Matrix3, Vector3};
 use std::{
     f64::consts::{FRAC_PI_2, PI},
-    ops::{Div, Index, IndexMut},
+    ops::{Div, Index, IndexMut, Sub},
 };
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -14,6 +14,12 @@ pub struct CartesianPoint(Vector3<f64>);
 impl From<GeographicPoint> for CartesianPoint {
     fn from(value: GeographicPoint) -> Self {
         CartesianPoint::from_geographic(&value)
+    }
+}
+
+impl From<&GeographicPoint> for CartesianPoint {
+    fn from(value: &GeographicPoint) -> Self {
+        CartesianPoint::from_geographic(value)
     }
 }
 
@@ -107,12 +113,24 @@ impl CartesianPoint {
         self[2] = z;
     }
 
-    /// Returns the point resulting from rotating self in theta radians about the axis that is
-    /// plotted from the origin of coordinates to the given axis point.
-    pub fn rotate(&self, axis: Self, theta: f64) -> Self {
+    /// Returns the distance between self and the given point.
+    pub fn distance(&self, other: &CartesianPoint) -> f64 {
+        (self.x().sub(other.x()).powi(2)
+            + self.y().sub(other.y()).powi(2)
+            + self.z().sub(other.z()).powi(2))
+        .sqrt()
+    }
+
+    /// Performs the cartesian product between self and the given point.
+    pub fn cross(&self, other: &CartesianPoint) -> Self {
+        self.0.cross(&other.0).into()
+    }
+
+    /// Rotates self in theta radians about the edge passing by the origin and the given axis point.
+    pub fn rotate(&mut self, axis: Self, theta: f64) {
         if self.0.normalize() == axis.0.normalize() {
             // the point belongs to the axis line, so the rotation takes no effect
-            return self.clone();
+            return;
         }
 
         let d = (axis.y().powi(2) + axis.z().powi(2)).sqrt();
@@ -135,7 +153,8 @@ impl CartesianPoint {
 
         if d == 0. {
             // the rotation axis is already perpendicular to the xy plane.
-            return (ry_inv * rz * ry * self.0).into();
+            self.0 = ry_inv * rz * ry * self.0;
+            return;
         }
 
         let c_div_d = Vector3::new(0., 0., axis.z())
@@ -150,7 +169,7 @@ impl CartesianPoint {
         let rx = Matrix3::new(1., 0., 0., 0., c_div_d, -b_div_d, 0., b_div_d, c_div_d);
         let rx_inv = Matrix3::new(1., 0., 0., 0., c_div_d, b_div_d, 0., -b_div_d, c_div_d);
 
-        (rx_inv * ry_inv * rz * ry * rx * self.0).into()
+        self.0 = rx_inv * ry_inv * rz * ry * rx * self.0;
     }
 }
 
@@ -160,7 +179,6 @@ mod tests {
     use float_cmp::approx_eq;
 
     const ULPS: i64 = 2;
-    const EPSILON: f64 = 0.00000000000000024492935982947064;
 
     #[test]
     fn cartesian_from_geographic_must_not_fail() {
@@ -212,7 +230,7 @@ mod tests {
                     test_case.cartesian.0.as_slice(),
                     ulps = ULPS
                 ),
-                "{}: got = {}, want = {}",
+                "{}: {} ±ε = {}",
                 test_case.name,
                 point.0,
                 test_case.cartesian.0
@@ -222,6 +240,8 @@ mod tests {
 
     #[test]
     fn rotate_must_not_fail() {
+        const EPSILON: f64 = 0.00000000000000024492935982947064;
+
         struct TestCase {
             name: &'static str,
             theta: f64,
@@ -282,19 +302,20 @@ mod tests {
             },
         ]
         .into_iter()
-        .for_each(|test_case| {
-            let got: CartesianPoint = test_case.origin.rotate(test_case.axis, test_case.theta);
+        .for_each(|mut test_case| {
+            test_case.origin.rotate(test_case.axis, test_case.theta);
+
             assert!(
                 approx_eq!(
                     &[f64],
-                    got.0.as_slice(),
+                    test_case.origin.0.as_slice(),
                     test_case.want.0.as_slice(),
                     epsilon = EPSILON,
                     ulps = 17
                 ),
-                "{}: got = {}, want = {}",
+                "{}: {} ±ε = {}",
                 test_case.name,
-                got.0,
+                test_case.origin.0,
                 test_case.want.0
             );
         });

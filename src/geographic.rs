@@ -201,6 +201,15 @@ impl GeographicPoint {
     pub fn lat_ratio(&self) -> f64 {
         self.latitude / FRAC_PI_2
     }
+
+    /// Computes the [great-circle distance](https://en.wikipedia.org/wiki/Great-circle_distance) from self to the given point (in radiants).
+    pub fn distance(&self, other: &GeographicPoint) -> f64 {
+        (self.latitude().sin() * other.latitude().sin()
+            + self.latitude().cos()
+                * other.latitude().cos()
+                * (self.longitude() - other.longitude()).abs().cos())
+        .acos()
+    }
 }
 
 #[cfg(test)]
@@ -245,7 +254,7 @@ mod tests {
             let point = GeographicPoint::default().with_longitude(test_case.input);
             assert!(
                 approx_eq!(f64, point.longitude, test_case.longitude, ulps = ULPS),
-                "{}: {} ±t == {}",
+                "{}: {} ±ε = {}",
                 test_case.name,
                 point.longitude,
                 test_case.longitude
@@ -288,7 +297,7 @@ mod tests {
             let point = GeographicPoint::default().with_latitude(test_case.input);
             assert!(
                 approx_eq!(f64, point.latitude, test_case.latitude, ulps = ULPS),
-                "{}: {} ±t == {}",
+                "{}: {} ±ε = {}",
                 test_case.name,
                 point.latitude,
                 test_case.latitude
@@ -341,7 +350,7 @@ mod tests {
             let point = GeographicPoint::default().with_latitude(test_case.input);
             assert!(
                 approx_eq!(f64, point.longitude, test_case.longitude, ulps = ULPS),
-                "{}: {} ±t == {}",
+                "{}: {} ±ε = {}",
                 test_case.name,
                 point.longitude,
                 test_case.longitude
@@ -391,7 +400,7 @@ mod tests {
             let point = GeographicPoint::default().with_longitude(test_case.longitude);
             assert!(
                 approx_eq!(f64, point.long_ratio(), test_case.ratio, ulps = ULPS),
-                "{}: {} ±t == {}",
+                "{}: {} ±ε = {}",
                 test_case.name,
                 point.long_ratio(),
                 test_case.ratio
@@ -439,7 +448,7 @@ mod tests {
             let point = GeographicPoint::default().with_latitude(test_case.latitude);
             assert!(
                 approx_eq!(f64, point.lat_ratio(), test_case.ratio, ulps = ULPS),
-                "{}: {} ±t == {}",
+                "{}: {} ±ε = {}",
                 test_case.name,
                 point.lat_ratio(),
                 test_case.ratio
@@ -457,14 +466,14 @@ mod tests {
 
         assert!(
             approx_eq!(f64, point.longitude(), FRAC_PI_2, ulps = ULPS),
-            "longitude must switch to positive: {} ±t == {}",
+            "longitude must switch to positive: {} ±ε = {}",
             point.longitude(),
             FRAC_PI_2
         );
 
         assert!(
             approx_eq!(f64, point.latitude(), -FRAC_PI_2 / 2., ulps = ULPS),
-            "latitude must switch to negative: {} ±t == {}",
+            "latitude must switch to negative: {} ±ε = {}",
             point.latitude(),
             -FRAC_PI_2 / 2.
         );
@@ -530,7 +539,7 @@ mod tests {
                     test_case.geographic.longitude(),
                     ulps = ULPS
                 ),
-                "{}: longitude {:#?} ±t == {:#?}",
+                "{}: longitude {:#?} ±ε == {:#?}",
                 test_case.name,
                 point.longitude(),
                 test_case.geographic.longitude(),
@@ -543,7 +552,7 @@ mod tests {
                     test_case.geographic.latitude(),
                     ulps = ULPS
                 ),
-                "{}: latitude {:#?} ±t == {:#?}",
+                "{}: latitude {:#?} ±ε == {:#?}",
                 test_case.name,
                 point.latitude(),
                 test_case.geographic.latitude(),
@@ -556,11 +565,54 @@ mod tests {
                     test_case.geographic.altitude(),
                     ulps = ULPS
                 ),
-                "{}: altitude {:#?} ±t == {:#?}",
+                "{}: altitude {:#?} ±ε == {:#?}",
                 test_case.name,
                 point.altitude(),
                 test_case.geographic.altitude(),
             );
+        });
+    }
+
+    #[test]
+    fn distance_must_not_fail() {
+        struct TestCase<'a> {
+            name: &'a str,
+            from: GeographicPoint,
+            to: GeographicPoint,
+            distance: f64,
+        }
+
+        vec![
+            TestCase {
+                name: "Same point must be zero",
+                from: GeographicPoint::default(),
+                to: GeographicPoint::default(),
+                distance: 0.,
+            },
+            TestCase {
+                name: "Oposite points in the horizontal",
+                from: GeographicPoint::default(),
+                to: GeographicPoint::default().with_longitude(-PI),
+                distance: PI,
+            },
+            TestCase {
+                name: "Oposite points in the vertical",
+                from: GeographicPoint::default().with_latitude(FRAC_PI_2),
+                to: GeographicPoint::default().with_latitude(-FRAC_PI_2),
+                distance: PI,
+            },
+        ]
+        .into_iter()
+        .for_each(|test_case| {
+            let got = test_case.from.distance(&test_case.to);
+
+            assert!(
+                approx_eq!(f64, got, test_case.distance, ulps = ULPS),
+                "{}: distance {:#?} ±ε == {:#?}",
+                test_case.name,
+                got,
+                test_case.distance,
+            )
         });
     }
 }
