@@ -17,12 +17,6 @@ impl From<GeographicPoint> for CartesianPoint {
     }
 }
 
-impl From<&GeographicPoint> for CartesianPoint {
-    fn from(value: &GeographicPoint) -> Self {
-        CartesianPoint::from_geographic(value)
-    }
-}
-
 impl From<Vector3<f64>> for CartesianPoint {
     fn from(value: Vector3<f64>) -> Self {
         CartesianPoint(value)
