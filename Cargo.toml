@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT"
 description = "A library for the management of geographic coordinates"
 readme = "./README.md"
+repository = "https://github.com/HectorMRC/globe-rs"
 
 [dependencies]
 wasm-bindgen = "0.2.87"
