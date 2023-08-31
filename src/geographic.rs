@@ -1,6 +1,6 @@
 use crate::CartesianPoint;
 use std::f64::consts::{FRAC_PI_2, PI};
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Mul, Neg, Sub};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 /// Represents a point using the geographic system of coordinates.
@@ -102,7 +102,7 @@ impl GeographicPoint {
     /// assert!(approx_eq!(f64, point.longitude(), -PI + 1_f64, ulps = 2));
     /// ```
     pub fn set_longitude(&mut self, value: f64) {
-        self.longitude = (-PI..PI)
+        self.longitude = (-PI..=PI)
             .contains(&value)
             .then_some(value)
             .unwrap_or_else(|| {
@@ -160,10 +160,12 @@ impl GeographicPoint {
                 // The derivative of sin(x) is cos(x), and so, cos(x) determines if
                 // the sign of the longitude of the point must change.
                 if value.cos().is_sign_negative() {
-                    // Increasing the longitude of the point by π radiants (180º)
+                    // Increasing the longitude of the point by ±π radiants (180º)
                     // ensures the sign is changed while maintaining it in the same
                     // pair of complementary meridians.
-                    self.set_longitude(self.longitude.add(PI));
+                    let direction = self.longitude.cos().signum().neg(); // invert direction
+                    let rotation = PI * direction;
+                    self.set_longitude(self.longitude + rotation);
                 }
 
                 value.sin().asin()
@@ -373,11 +375,9 @@ mod tests {
                 ratio: 0.,
             },
             TestCase {
-                // Since PI and -PI represents the same point, -PI is, for convenience,
-                // the only valid one for representing that point.
-                name: "positive longitude boundary must equals to negative one",
+                name: "positive longitude boundary must equals to positive one",
                 longitude: PI,
-                ratio: -1.,
+                ratio: 1.,
             },
             TestCase {
                 name: "arbitrary positive longitude must be positive",
@@ -524,7 +524,7 @@ mod tests {
             TestCase {
                 name: "back point",
                 geographic: GeographicPoint::default()
-                    .with_longitude(-PI)
+                    .with_longitude(PI)
                     .with_altitude(1.),
                 cartesian: CartesianPoint::new(-1., 0., 0.),
             },
