@@ -209,8 +209,13 @@ mod tests {
                 cartesian: CartesianPoint::new(1., 0., 0.),
             },
             TestCase {
-                name: "back point",
+                name: "back point as negative bound",
                 geographic: GeographicPoint::default().with_longitude(-PI),
+                cartesian: CartesianPoint::new(-1., 0., 0.),
+            },
+            TestCase {
+                name: "back point as positive bound",
+                geographic: GeographicPoint::default().with_longitude(PI),
                 cartesian: CartesianPoint::new(-1., 0., 0.),
             },
         ]
