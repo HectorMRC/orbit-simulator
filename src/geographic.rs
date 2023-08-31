@@ -102,7 +102,7 @@ impl GeographicPoint {
     /// assert!(approx_eq!(f64, point.longitude(), -PI + 1_f64, ulps = 2));
     /// ```
     pub fn set_longitude(&mut self, value: f64) {
-        self.longitude = (-PI..=PI)
+        self.longitude = (-PI..PI)
             .contains(&value)
             .then_some(value)
             .unwrap_or_else(|| {
@@ -150,7 +150,7 @@ impl GeographicPoint {
     /// point.set_latitude(-5. * PI / 4.);
     ///
     /// assert!(approx_eq!(f64, point.latitude(), PI / 4., ulps = 2));
-    /// assert!(approx_eq!(f64, point.longitude(), PI, ulps = 2));
+    /// assert!(approx_eq!(f64, point.longitude(), -PI, ulps = 2));
     /// ```
     pub fn set_latitude(&mut self, value: f64) {
         self.latitude = (-FRAC_PI_2..=FRAC_PI_2)
@@ -159,7 +159,7 @@ impl GeographicPoint {
             .unwrap_or_else(|| {
                 // The derivative of sin(x) is cos(x), and so, cos(x) determines if
                 // the sign of the longitude of the point must change.
-                if value.cos().signum() != self.latitude.cos().signum() {
+                if value.cos().is_sign_negative() {
                     // Increasing the longitude of the point by π radiants (180º)
                     // ensures the sign is changed while maintaining it in the same
                     // pair of complementary meridians.
@@ -337,12 +337,12 @@ mod tests {
             TestCase {
                 name: "positive overflowing latitude must change longitude",
                 input: 5. * PI / 4.,
-                longitude: PI,
+                longitude: -PI,
             },
             TestCase {
                 name: "negative overflowing latidude must change longitude",
                 input: -PI,
-                longitude: PI,
+                longitude: -PI,
             },
         ]
         .into_iter()
@@ -373,9 +373,11 @@ mod tests {
                 ratio: 0.,
             },
             TestCase {
-                name: "positive longitude boundary must be positive",
+                // Since PI and -PI represents the same point, -PI is, for convenience,
+                // the only valid one for representing that point.
+                name: "positive longitude boundary must equals to negative one",
                 longitude: PI,
-                ratio: 1.,
+                ratio: -1.,
             },
             TestCase {
                 name: "arbitrary positive longitude must be positive",
@@ -522,7 +524,7 @@ mod tests {
             TestCase {
                 name: "back point",
                 geographic: GeographicPoint::default()
-                    .with_longitude(PI)
+                    .with_longitude(-PI)
                     .with_altitude(1.),
                 cartesian: CartesianPoint::new(-1., 0., 0.),
             },
