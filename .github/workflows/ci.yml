@@ -7,35 +7,12 @@ on:
       - main
 
 jobs:
-  changelog:
-    name: Changelog
-    runs-on: ubuntu-latest
-
-    outputs:
-      changelog: ${{ steps.changed-files.outputs.all_changed_files }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v38.1.3
-
-  run_unitary_tests:
+  unitary_tests:
     name: Run clippy and unitary tests
     runs-on: ubuntu-latest
-
-    needs: changelog
-    if: |
-      contains(needs.changelog.outputs.changelog, 'src') ||
-      contains(needs.changelog.outputs.changelog, 'Cargo.toml')
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -58,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     name: ubuntu / stable / coverage
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
