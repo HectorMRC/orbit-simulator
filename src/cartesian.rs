@@ -100,11 +100,14 @@ impl CartesianPoint {
         self.0.cross(&other.0).into()
     }
 
-    /// Rotates self in theta radians around the edge passing by the origin and the given axis point.
-    pub fn rotate(&mut self, axis: Self, theta: f64) {
-        if self.0.normalize() == axis.0.normalize() {
+    /// Returns the [CartesianPoint] resulting from rotating self theta radians around the edge
+    /// passing by the origin and the given axis point.
+    pub fn rotate(&self, axis: Self, theta: f64) -> Self {
+        let mut rotated_point = *self;
+
+        if rotated_point.0.normalize() == axis.0.normalize() {
             // the point belongs to the axis line, so the rotation takes no effect
-            return;
+            return rotated_point;
         }
 
         let d = (axis.y().powi(2) + axis.z().powi(2)).sqrt();
@@ -127,8 +130,8 @@ impl CartesianPoint {
 
         if d == 0. {
             // the rotation axis is already perpendicular to the xy plane.
-            self.0 = ry_inv * rz * ry * self.0;
-            return;
+            rotated_point.0 = ry_inv * rz * ry * rotated_point.0;
+            return rotated_point;
         }
 
         let c_div_d =
@@ -142,160 +145,172 @@ impl CartesianPoint {
         let rx = Matrix3::new(1., 0., 0., 0., c_div_d, -b_div_d, 0., b_div_d, c_div_d);
         let rx_inv = Matrix3::new(1., 0., 0., 0., c_div_d, b_div_d, 0., -b_div_d, c_div_d);
 
-        self.0 = rx_inv * ry_inv * rz * ry * rx * self.0;
+        rotated_point.0 = rx_inv * ry_inv * rz * ry * rx * rotated_point.0;
+        rotated_point
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use float_cmp::approx_eq;
+#[cfg(test)]
+mod tests {
+    use std::{
+        f64::consts::{FRAC_PI_2, PI},
+        ops::{Add, Sub},
+    };
 
-//     const ULPS: i64 = 2;
+    use crate::{tests::approx_eq, CartesianPoint, GeographicPoint, Latitude, Longitude};
 
-//     #[test]
-//     fn cartesian_from_geographic_must_not_fail() {
-//         struct TestCase {
-//             name: &'static str,
-//             geographic: GeographicPoint,
-//             cartesian: CartesianPoint,
-//         }
+    impl PartialOrd for CartesianPoint {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            self.0.partial_cmp(&other.0)
+        }
+    }
 
-//         vec![
-//             TestCase {
-//                 name: "north point",
-//                 geographic: GeographicPoint::default().with_latitude(FRAC_PI_2),
-//                 cartesian: CartesianPoint::new(0., 0., 1.),
-//             },
-//             TestCase {
-//                 name: "south point",
-//                 geographic: GeographicPoint::default().with_latitude(-FRAC_PI_2),
-//                 cartesian: CartesianPoint::new(0., 0., -1.),
-//             },
-//             TestCase {
-//                 name: "east point",
-//                 geographic: GeographicPoint::default().with_longitude(FRAC_PI_2),
-//                 cartesian: CartesianPoint::new(0., 1., 0.),
-//             },
-//             TestCase {
-//                 name: "weast point",
-//                 geographic: GeographicPoint::default().with_longitude(-FRAC_PI_2),
-//                 cartesian: CartesianPoint::new(0., -1., 0.),
-//             },
-//             TestCase {
-//                 name: "front point",
-//                 geographic: GeographicPoint::default(),
-//                 cartesian: CartesianPoint::new(1., 0., 0.),
-//             },
-//             TestCase {
-//                 name: "back point as negative bound",
-//                 geographic: GeographicPoint::default().with_longitude(-PI),
-//                 cartesian: CartesianPoint::new(-1., 0., 0.),
-//             },
-//             TestCase {
-//                 name: "back point as positive bound",
-//                 geographic: GeographicPoint::default().with_longitude(PI),
-//                 cartesian: CartesianPoint::new(-1., 0., 0.),
-//             },
-//         ]
-//         .into_iter()
-//         .for_each(|test_case| {
-//             let point = CartesianPoint::from(test_case.geographic);
-//             assert!(
-//                 approx_eq!(
-//                     &[f64],
-//                     point.0.as_slice(),
-//                     test_case.cartesian.0.as_slice(),
-//                     ulps = ULPS
-//                 ),
-//                 "{}: {} ±ε = {}",
-//                 test_case.name,
-//                 point.0,
-//                 test_case.cartesian.0
-//             );
-//         });
-//     }
+    impl Add<f64> for CartesianPoint {
+        type Output = Self;
 
-//     #[test]
-//     fn rotate_must_not_fail() {
-//         const EPSILON: f64 = 0.00000000000000024492935982947064;
+        fn add(self, rhs: f64) -> Self::Output {
+            Self::from(self.0.add_scalar(rhs))
+        }
+    }
 
-//         struct TestCase {
-//             name: &'static str,
-//             theta: f64,
-//             axis: CartesianPoint,
-//             origin: CartesianPoint,
-//             want: CartesianPoint,
-//         }
+    impl Sub<f64> for CartesianPoint {
+        type Output = Self;
 
-//         vec![
-//             TestCase {
-//                 name: "full rotation on the x axis must not change the y point",
-//                 theta: 2. * PI,
-//                 axis: CartesianPoint::new(1., 0., 0.),
-//                 origin: CartesianPoint::new(0., 1., 0.),
-//                 want: CartesianPoint::new(0., 1., 0.),
-//             },
-//             TestCase {
-//                 name: "half of a whole rotation on the x axis must change the y point",
-//                 theta: PI,
-//                 axis: CartesianPoint::new(1., 0., 0.),
-//                 origin: CartesianPoint::new(0., 1., 0.),
-//                 want: CartesianPoint::new(0., -1., 0.),
-//             },
-//             TestCase {
-//                 name: "a quarter of a whole rotation on the x axis must change the y point",
-//                 theta: FRAC_PI_2,
-//                 axis: CartesianPoint::new(1., 0., 0.),
-//                 origin: CartesianPoint::new(0., 1., 0.),
-//                 want: CartesianPoint::new(0., 0., -1.),
-//             },
-//             TestCase {
-//                 name: "full rotation on the z axis must not change the y point",
-//                 theta: 2. * PI,
-//                 axis: CartesianPoint::new(0., 0., 1.),
-//                 origin: CartesianPoint::new(0., 1., 0.),
-//                 want: CartesianPoint::new(0., 1., 0.),
-//             },
-//             TestCase {
-//                 name: "half of a whole rotation on the z axis must change the y point",
-//                 theta: PI,
-//                 axis: CartesianPoint::new(0., 0., 1.),
-//                 origin: CartesianPoint::new(0., 1., 0.),
-//                 want: CartesianPoint::new(0., -1., 0.),
-//             },
-//             TestCase {
-//                 name: "a quarter of a whole rotation on the z axis must change the y point",
-//                 theta: FRAC_PI_2,
-//                 axis: CartesianPoint::new(0., 0., 1.),
-//                 origin: CartesianPoint::new(0., 1., 0.),
-//                 want: CartesianPoint::new(1., 0., 0.),
-//             },
-//             TestCase {
-//                 name: "rotate over itself must not change the point",
-//                 theta: FRAC_PI_2,
-//                 axis: CartesianPoint::new(0., 1., 0.),
-//                 origin: CartesianPoint::new(0., 1., 0.),
-//                 want: CartesianPoint::new(0., 1., 0.),
-//             },
-//         ]
-//         .into_iter()
-//         .for_each(|mut test_case| {
-//             test_case.origin.rotate(test_case.axis, test_case.theta);
+        fn sub(self, rhs: f64) -> Self::Output {
+            Self::from(self.0.add_scalar(-rhs))
+        }
+    }
 
-//             assert!(
-//                 approx_eq!(
-//                     &[f64],
-//                     test_case.origin.0.as_slice(),
-//                     test_case.want.0.as_slice(),
-//                     epsilon = EPSILON,
-//                     ulps = 17
-//                 ),
-//                 "{}: {} ±ε = {}",
-//                 test_case.name,
-//                 test_case.origin.0,
-//                 test_case.want.0
-//             );
-//         });
-//     }
-// }
+    #[test]
+    fn cartesian_from_geographic_must_not_fail() {
+        struct Test {
+            name: &'static str,
+            input: GeographicPoint,
+            output: CartesianPoint,
+        }
+
+        vec![
+            Test {
+                name: "north point",
+                input: GeographicPoint::default().with_latitude(Latitude::from(FRAC_PI_2)),
+                output: CartesianPoint::from([0., 0., 1.]),
+            },
+            Test {
+                name: "south point",
+                input: GeographicPoint::default().with_latitude(Latitude::from(-FRAC_PI_2)),
+                output: CartesianPoint::from([0., 0., -1.]),
+            },
+            Test {
+                name: "east point",
+                input: GeographicPoint::default().with_longitude(Longitude::from(FRAC_PI_2)),
+                output: CartesianPoint::from([0., 1., 0.]),
+            },
+            Test {
+                name: "weast point",
+                input: GeographicPoint::default().with_longitude(Longitude::from(-FRAC_PI_2)),
+                output: CartesianPoint::from([0., -1., 0.]),
+            },
+            Test {
+                name: "front point",
+                input: GeographicPoint::default(),
+                output: CartesianPoint::from([1., 0., 0.]),
+            },
+            Test {
+                name: "back point as negative bound",
+                input: GeographicPoint::default().with_longitude(Longitude::from(-PI)),
+                output: CartesianPoint::from([-1., 0., 0.]),
+            },
+            Test {
+                name: "back point as positive bound",
+                input: GeographicPoint::default().with_longitude(Longitude::from(PI)),
+                output: CartesianPoint::from([-1., 0., 0.]),
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let point = CartesianPoint::from(test.input);
+            assert_eq!(
+                point, test.output,
+                "{}: got cartesian point = {:#?}, want {:#?}",
+                test.name, point, test.output
+            );
+        });
+    }
+
+    #[test]
+    fn rotate_must_not_fail() {
+        const EPSILON: f64 = 0.0000000000000003;
+
+        struct Test {
+            name: &'static str,
+            theta: f64,
+            axis: CartesianPoint,
+            input: CartesianPoint,
+            output: CartesianPoint,
+        }
+
+        vec![
+            Test {
+                name: "full rotation on the x axis must not change the y point",
+                theta: 2. * PI,
+                axis: CartesianPoint::from([1., 0., 0.]),
+                input: CartesianPoint::from([0., 1., 0.]),
+                output: CartesianPoint::from([0., 1., 0.]),
+            },
+            Test {
+                name: "half of a whole rotation on the x axis must change the y point",
+                theta: PI,
+                axis: CartesianPoint::from([1., 0., 0.]),
+                input: CartesianPoint::from([0., 1., 0.]),
+                output: CartesianPoint::from([0., -1., 0.]),
+            },
+            Test {
+                name: "a quarter of a whole rotation on the x axis must change the y point",
+                theta: FRAC_PI_2,
+                axis: CartesianPoint::from([1., 0., 0.]),
+                input: CartesianPoint::from([0., 1., 0.]),
+                output: CartesianPoint::from([0., 0., -1.]),
+            },
+            Test {
+                name: "full rotation on the z axis must not change the y point",
+                theta: 2. * PI,
+                axis: CartesianPoint::from([0., 0., 1.]),
+                input: CartesianPoint::from([0., 1., 0.]),
+                output: CartesianPoint::from([0., 1., 0.]),
+            },
+            Test {
+                name: "half of a whole rotation on the z axis must change the y point",
+                theta: PI,
+                axis: CartesianPoint::from([0., 0., 1.]),
+                input: CartesianPoint::from([0., 1., 0.]),
+                output: CartesianPoint::from([0., -1., 0.]),
+            },
+            Test {
+                name: "a quarter of a whole rotation on the z axis must change the y point",
+                theta: FRAC_PI_2,
+                axis: CartesianPoint::from([0., 0., 1.]),
+                input: CartesianPoint::from([0., 1., 0.]),
+                output: CartesianPoint::from([1., 0., 0.]),
+            },
+            Test {
+                name: "rotate over itself must not change the point",
+                theta: FRAC_PI_2,
+                axis: CartesianPoint::from([0., 1., 0.]),
+                input: CartesianPoint::from([0., 1., 0.]),
+                output: CartesianPoint::from([0., 1., 0.]),
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let rotated = test.input.rotate(test.axis, test.theta);
+
+            assert!(
+                approx_eq(rotated, test.output, EPSILON),
+                "{}: {:?} ±ε = {:?}",
+                test.name,
+                rotated,
+                test.output
+            );
+        });
+    }
+}
