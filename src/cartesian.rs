@@ -149,7 +149,7 @@ impl CartesianPoint {
 ///
 /// assert!(
 ///     approx_eq(rotated, CartesianPoint::from([0., 0., 1.]), epsilon),
-///     "point at 1y should be rotated around the x axis to 1z"
+///     "point at y1 should be rotated around the x axis to z1"
 /// );
 /// ```
 #[derive(Debug, Default)]
