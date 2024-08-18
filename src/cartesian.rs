@@ -364,7 +364,7 @@ mod tests {
 
             assert!(
                 approx_eq(rotated, test.output, EPSILON),
-                "{}: got rotated = {:?}, want ±ε = {:?}",
+                "{}: got rotated = {:?}, want ± ε = {:?}",
                 test.name,
                 rotated,
                 test.output
