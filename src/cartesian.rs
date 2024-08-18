@@ -81,7 +81,7 @@ impl CartesianPoint {
     }
 
     /// Returns the normal version of the [CartesianPoint], which length is exactly 1.
-    pub fn normal(&self) -> Self {
+    pub fn unit(&self) -> Self {
         self.0.normalize().into()
     }
 
@@ -235,6 +235,42 @@ mod tests {
                 test.name, point, test.output
             );
         });
+    }
+
+    #[test]
+    fn unit_must_not_fail() {
+        struct Test {
+            name: &'static str,
+            input: CartesianPoint,
+            output: CartesianPoint,
+        }
+
+        vec![
+            Test {
+                name: "lenght of unit vector must be 1 at x axis",
+                input: CartesianPoint::from([2., 0., 0.]),
+                output: CartesianPoint::from([1., 0., 0.]),
+            },
+            Test {
+                name: "lenght of unit vector must be 1 at y axis",
+                input: CartesianPoint::from([0., 3., 0.]),
+                output: CartesianPoint::from([0., 1., 0.]),
+            },
+            Test {
+                name: "lenght of unit vector must be 1 at z axis",
+                input: CartesianPoint::from([0., 0., -4.]),
+                output: CartesianPoint::from([0., 0., -1.]),
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let unit = test.input.unit();
+            assert_eq!(
+                unit, test.output,
+                "{}: got unit = {:?}, want {:?}",
+                test.name, unit, test.output
+            );
+        })
     }
 
     #[test]
