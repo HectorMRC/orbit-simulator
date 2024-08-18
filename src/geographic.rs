@@ -532,7 +532,7 @@ mod tests {
 
             assert_eq!(
                 distance, test.distance,
-                "{}: distance {} ±ε == {}",
+                "{}: distance {} ± ε == {}",
                 test.name, distance, test.distance,
             )
         });
