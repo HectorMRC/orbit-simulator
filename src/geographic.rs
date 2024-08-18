@@ -228,405 +228,313 @@ impl GeographicPoint {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use float_cmp::approx_eq;
+#[cfg(test)]
+mod tests {
+    use std::f64::consts::{FRAC_PI_2, PI};
 
-//     const ULPS: i64 = 2;
+    use crate::{tests::approx_eq, Altitude, CartesianPoint, GeographicPoint, Latitude, Longitude};
 
-//     #[test]
-//     fn longitude_must_not_exceed_boundaries() {
-//         struct TestCase {
-//             name: &'static str,
-//             input: f64,
-//             longitude: f64,
-//         }
+    #[test]
+    fn longitude_must_not_exceed_boundaries() {
+        struct Test {
+            name: &'static str,
+            input: f64,
+            output: f64,
+        }
 
-//         vec![
-//             TestCase {
-//                 name: "positive longitude value must not change",
-//                 input: 1.,
-//                 longitude: 1.,
-//             },
-//             TestCase {
-//                 name: "negative longitude value must not change",
-//                 input: -3.,
-//                 longitude: -3.,
-//             },
-//             TestCase {
-//                 name: "positive overflowing longitude must change",
-//                 input: PI + 1.,
-//                 longitude: -PI + 1.,
-//             },
-//             TestCase {
-//                 name: "negative overflowing longitude must change",
-//                 input: -PI - 1.,
-//                 longitude: PI - 1.,
-//             },
-//         ]
-//         .into_iter()
-//         .for_each(|test_case| {
-//             let point = GeographicPoint::default().with_longitude(test_case.input);
-//             assert!(
-//                 approx_eq!(f64, point.longitude, test_case.longitude, ulps = ULPS),
-//                 "{}: {} ±ε = {}",
-//                 test_case.name,
-//                 point.longitude,
-//                 test_case.longitude
-//             );
-//         });
-//     }
+        vec![
+            Test {
+                name: "positive longitude value must not change",
+                input: 1.,
+                output: 1.,
+            },
+            Test {
+                name: "negative longitude value must not change",
+                input: -3.,
+                output: -3.,
+            },
+            Test {
+                name: "positive overflowing longitude must change",
+                input: PI + 1.,
+                output: -PI + 1.,
+            },
+            Test {
+                name: "negative overflowing longitude must change",
+                input: -PI - 1.,
+                output: PI - 1.,
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let longitude = Longitude::from(test.input).as_f64();
+            assert_eq!(
+                longitude, test.output,
+                "{}: got longitude = {}, want {}",
+                test.name, longitude, test.output
+            );
+        });
+    }
 
-//     #[test]
-//     fn latitude_must_not_exceed_boundaries() {
-//         struct TestCase {
-//             name: &'static str,
-//             input: f64,
-//             latitude: f64,
-//         }
+    #[test]
+    fn normal_longitude_must_not_exceed_boundaries() {
+        struct Test {
+            name: &'static str,
+            input: f64,
+            output: f64,
+        }
 
-//         vec![
-//             TestCase {
-//                 name: "positive latitude value must not change",
-//                 input: 1.,
-//                 latitude: 1.,
-//             },
-//             TestCase {
-//                 name: "negative latitude value must not change",
-//                 input: -1.,
-//                 latitude: -1.,
-//             },
-//             TestCase {
-//                 name: "positive overflowing latitude must change",
-//                 input: 7. * PI / 4.,
-//                 latitude: -PI / 4.,
-//             },
-//             TestCase {
-//                 name: "negative overflowing latidude must change",
-//                 input: -7. * PI / 4.,
-//                 latitude: PI / 4.,
-//             },
-//         ]
-//         .into_iter()
-//         .for_each(|test_case| {
-//             let point = GeographicPoint::default().with_latitude(test_case.input);
-//             assert!(
-//                 approx_eq!(f64, point.latitude, test_case.latitude, ulps = ULPS),
-//                 "{}: {} ±ε = {}",
-//                 test_case.name,
-//                 point.latitude,
-//                 test_case.latitude
-//             );
-//         });
-//     }
+        vec![
+            Test {
+                name: "zero longitude must be equals to zero",
+                input: 0.,
+                output: 0.,
+            },
+            Test {
+                name: "positive longitude boundary must equals to positive one",
+                input: PI,
+                output: 1.,
+            },
+            Test {
+                name: "arbitrary positive longitude must be positive",
+                input: FRAC_PI_2,
+                output: 0.5,
+            },
+            Test {
+                name: "negative longitude boundary must equals to negative one",
+                input: -PI,
+                output: -1.,
+            },
+            Test {
+                name: "arbitrary negative longitude must be negative",
+                input: -FRAC_PI_2,
+                output: -0.5,
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let normal = Longitude::from(test.input).normal();
 
-//     #[test]
-//     fn longitude_may_change_based_on_latitude() {
-//         struct TestCase {
-//             name: &'static str,
-//             input: f64,
-//             longitude: f64,
-//         }
+            assert_eq!(
+                normal, test.output,
+                "{}: got normal = {}, want {}",
+                test.name, normal, test.output
+            );
+        });
+    }
 
-//         vec![
-//             TestCase {
-//                 name: "positive latitude value must not change longitude",
-//                 input: 1.,
-//                 longitude: 0.,
-//             },
-//             TestCase {
-//                 name: "negative latitude value must not change longitude",
-//                 input: -1.,
-//                 longitude: 0.,
-//             },
-//             TestCase {
-//                 name: "positive overflowing latitude must not change longitude",
-//                 input: 7. * PI / 4.,
-//                 longitude: 0.,
-//             },
-//             TestCase {
-//                 name: "negative overflowing latidude must not change longitude",
-//                 input: -7. * PI / 4.,
-//                 longitude: 0.,
-//             },
-//             TestCase {
-//                 name: "positive overflowing latitude must change longitude",
-//                 input: 5. * PI / 4.,
-//                 longitude: -PI,
-//             },
-//             TestCase {
-//                 name: "negative overflowing latidude must change longitude",
-//                 input: -PI,
-//                 longitude: -PI,
-//             },
-//         ]
-//         .into_iter()
-//         .for_each(|test_case| {
-//             let point = GeographicPoint::default().with_latitude(test_case.input);
-//             assert!(
-//                 approx_eq!(f64, point.longitude, test_case.longitude, ulps = ULPS),
-//                 "{}: {} ±ε = {}",
-//                 test_case.name,
-//                 point.longitude,
-//                 test_case.longitude
-//             );
-//         });
-//     }
+    #[test]
+    fn latitude_must_not_exceed_boundaries() {
+        const EPSILON: f64 = 0.0000000000000002;
 
-//     #[test]
-//     fn long_ratio_must_not_exceed_boundaries() {
-//         struct TestCase {
-//             name: &'static str,
-//             longitude: f64,
-//             ratio: f64,
-//         }
+        struct Test {
+            name: &'static str,
+            input: f64,
+            output: f64,
+        }
 
-//         vec![
-//             TestCase {
-//                 name: "zero longitude must be equals to zero",
-//                 longitude: 0.,
-//                 ratio: 0.,
-//             },
-//             TestCase {
-//                 name: "positive longitude boundary must equals to positive one",
-//                 longitude: PI,
-//                 ratio: 1.,
-//             },
-//             TestCase {
-//                 name: "arbitrary positive longitude must be positive",
-//                 longitude: FRAC_PI_2,
-//                 ratio: 0.5,
-//             },
-//             TestCase {
-//                 name: "negative longitude boundary must equals to negative one",
-//                 longitude: -PI,
-//                 ratio: -1.,
-//             },
-//             TestCase {
-//                 name: "arbitrary negative longitude must be negative",
-//                 longitude: -FRAC_PI_2,
-//                 ratio: -0.5,
-//             },
-//         ]
-//         .into_iter()
-//         .for_each(|test_case| {
-//             let point = GeographicPoint::default().with_longitude(test_case.longitude);
-//             assert!(
-//                 approx_eq!(f64, point.long_ratio(), test_case.ratio, ulps = ULPS),
-//                 "{}: {} ±ε = {}",
-//                 test_case.name,
-//                 point.long_ratio(),
-//                 test_case.ratio
-//             );
-//         });
-//     }
+        vec![
+            Test {
+                name: "positive latitude value must not change",
+                input: 1.,
+                output: 1.,
+            },
+            Test {
+                name: "negative latitude value must not change",
+                input: -1.,
+                output: -1.,
+            },
+            Test {
+                name: "positive overflowing latitude must change",
+                input: 7. * PI / 4.,
+                output: -PI / 4.,
+            },
+            Test {
+                name: "negative overflowing latidude must change",
+                input: -7. * PI / 4.,
+                output: PI / 4.,
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let latitude = Latitude::from(test.input).as_f64();
+            assert!(
+                approx_eq(latitude, test.output, EPSILON),
+                "{}: got latitude = {}, want {}",
+                test.name,
+                latitude,
+                test.output
+            );
+        });
+    }
 
-//     #[test]
-//     fn lat_ratio_must_not_exceed_boundaries() {
-//         struct TestCase {
-//             name: &'static str,
-//             latitude: f64,
-//             ratio: f64,
-//         }
+    #[test]
+    fn normal_latitude_must_not_exceed_boundaries() {
+        struct Test {
+            name: &'static str,
+            input: f64,
+            output: f64,
+        }
 
-//         vec![
-//             TestCase {
-//                 name: "zero latitude must be equals to zero",
-//                 latitude: 0.,
-//                 ratio: 0.,
-//             },
-//             TestCase {
-//                 name: "positive latitude boundary must equals to one",
-//                 latitude: FRAC_PI_2,
-//                 ratio: 1.,
-//             },
-//             TestCase {
-//                 name: "arbitrary positive latitude must be positive",
-//                 latitude: FRAC_PI_2 / 2.,
-//                 ratio: 0.5,
-//             },
-//             TestCase {
-//                 name: "negative latitude boundary must equals to negative one",
-//                 latitude: -FRAC_PI_2,
-//                 ratio: -1.,
-//             },
-//             TestCase {
-//                 name: "arbitrary negative latitude must be negative",
-//                 latitude: -FRAC_PI_2 / 2.,
-//                 ratio: -0.5,
-//             },
-//         ]
-//         .into_iter()
-//         .for_each(|test_case| {
-//             let point = GeographicPoint::default().with_latitude(test_case.latitude);
-//             assert!(
-//                 approx_eq!(f64, point.lat_ratio(), test_case.ratio, ulps = ULPS),
-//                 "{}: {} ±ε = {}",
-//                 test_case.name,
-//                 point.lat_ratio(),
-//                 test_case.ratio
-//             );
-//         });
-//     }
+        vec![
+            Test {
+                name: "zero latitude must be equals to zero",
+                input: 0.,
+                output: 0.,
+            },
+            Test {
+                name: "positive latitude boundary must equals to one",
+                input: FRAC_PI_2,
+                output: 1.,
+            },
+            Test {
+                name: "arbitrary positive latitude must be positive",
+                input: FRAC_PI_2 / 2.,
+                output: 0.5,
+            },
+            Test {
+                name: "negative latitude boundary must equals to negative one",
+                input: -FRAC_PI_2,
+                output: -1.,
+            },
+            Test {
+                name: "arbitrary negative latitude must be negative",
+                input: -FRAC_PI_2 / 2.,
+                output: -0.5,
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let normal = Latitude::from(test.input).normal();
 
-//     #[test]
-//     fn basic_operations_must_be_consistent() {
-//         let mut point = GeographicPoint::default()
-//             .with_longitude(-FRAC_PI_2)
-//             .with_latitude(FRAC_PI_2 / 2.);
+            assert_eq!(
+                normal, test.output,
+                "{}: got normal = {}, want {}",
+                test.name, normal, test.output
+            );
+        });
+    }
 
-//         point.set_latitude(point.latitude().add(PI));
+    #[test]
+    fn geographic_from_cartesian_must_not_fail() {
+        struct Test {
+            name: &'static str,
+            input: CartesianPoint,
+            output: GeographicPoint,
+        }
 
-//         assert!(
-//             approx_eq!(f64, point.longitude(), FRAC_PI_2, ulps = ULPS),
-//             "longitude must switch to positive: {} ±ε = {}",
-//             point.longitude(),
-//             FRAC_PI_2
-//         );
+        vec![
+            Test {
+                name: "north point",
+                input: CartesianPoint::from([0., 0., 1.]),
+                output: GeographicPoint::default()
+                    .with_latitude(Latitude::from(FRAC_PI_2))
+                    .with_altitude(Altitude::from(1.)),
+            },
+            Test {
+                name: "south point",
+                input: CartesianPoint::from([0., 0., -1.]),
+                output: GeographicPoint::default()
+                    .with_latitude(Latitude::from(-FRAC_PI_2))
+                    .with_altitude(Altitude::from(1.)),
+            },
+            Test {
+                name: "east point",
+                input: CartesianPoint::from([0., 1., 0.]),
+                output: GeographicPoint::default()
+                    .with_longitude(Longitude::from(FRAC_PI_2))
+                    .with_altitude(Altitude::from(1.)),
+            },
+            Test {
+                name: "weast point",
+                input: CartesianPoint::from([0., -1., 0.]),
+                output: GeographicPoint::default()
+                    .with_longitude(Longitude::from(-FRAC_PI_2))
+                    .with_altitude(Altitude::from(1.)),
+            },
+            Test {
+                name: "front point",
+                input: CartesianPoint::from([1., 0., 0.]),
+                output: GeographicPoint::default().with_altitude(Altitude::from(1.)),
+            },
+            Test {
+                name: "back point",
+                input: CartesianPoint::from([-1., 0., 0.]),
+                output: GeographicPoint::default()
+                    .with_longitude(Longitude::from(PI))
+                    .with_altitude(Altitude::from(1.)),
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let point = GeographicPoint::from(test.input);
 
-//         assert!(
-//             approx_eq!(f64, point.latitude(), -FRAC_PI_2 / 2., ulps = ULPS),
-//             "latitude must switch to negative: {} ±ε = {}",
-//             point.latitude(),
-//             -FRAC_PI_2 / 2.
-//         );
-//     }
+            assert_eq!(
+                point.longitude,
+                test.output.longitude,
+                "{}: got longitude = {}, want {}",
+                test.name,
+                point.longitude.as_f64(),
+                test.output.longitude.as_f64(),
+            );
 
-//     #[test]
-//     fn geographic_from_cartesian_must_not_fail() {
-//         struct TestCase {
-//             name: &'static str,
-//             geographic: GeographicPoint,
-//             cartesian: CartesianPoint,
-//         }
+            assert_eq!(
+                point.latitude,
+                test.output.latitude,
+                "{}: got latitude = {}, want {}",
+                test.name,
+                point.latitude.as_f64(),
+                test.output.latitude.as_f64(),
+            );
 
-//         vec![
-//             TestCase {
-//                 name: "north point",
-//                 geographic: GeographicPoint::default()
-//                     .with_latitude(FRAC_PI_2)
-//                     .with_altitude(1.),
-//                 cartesian: CartesianPoint::new(0., 0., 1.),
-//             },
-//             TestCase {
-//                 name: "south point",
-//                 geographic: GeographicPoint::default()
-//                     .with_latitude(-FRAC_PI_2)
-//                     .with_altitude(1.),
-//                 cartesian: CartesianPoint::new(0., 0., -1.),
-//             },
-//             TestCase {
-//                 name: "east point",
-//                 geographic: GeographicPoint::default()
-//                     .with_longitude(FRAC_PI_2)
-//                     .with_altitude(1.),
-//                 cartesian: CartesianPoint::new(0., 1., 0.),
-//             },
-//             TestCase {
-//                 name: "weast point",
-//                 geographic: GeographicPoint::default()
-//                     .with_longitude(-FRAC_PI_2)
-//                     .with_altitude(1.),
-//                 cartesian: CartesianPoint::new(0., -1., 0.),
-//             },
-//             TestCase {
-//                 name: "front point",
-//                 geographic: GeographicPoint::default().with_altitude(1.),
-//                 cartesian: CartesianPoint::new(1., 0., 0.),
-//             },
-//             TestCase {
-//                 name: "back point",
-//                 geographic: GeographicPoint::default()
-//                     .with_longitude(PI)
-//                     .with_altitude(1.),
-//                 cartesian: CartesianPoint::new(-1., 0., 0.),
-//             },
-//         ]
-//         .into_iter()
-//         .for_each(|test_case| {
-//             let point = GeographicPoint::from(test_case.cartesian);
-//             assert!(
-//                 approx_eq!(
-//                     f64,
-//                     point.longitude(),
-//                     test_case.geographic.longitude(),
-//                     ulps = ULPS
-//                 ),
-//                 "{}: longitude {:#?} ±ε == {:#?}",
-//                 test_case.name,
-//                 point.longitude(),
-//                 test_case.geographic.longitude(),
-//             );
+            assert_eq!(
+                point.altitude,
+                test.output.altitude,
+                "{}: got altitude = {}, want {}",
+                test.name,
+                point.altitude.as_f64(),
+                test.output.altitude.as_f64(),
+            );
+        });
+    }
 
-//             assert!(
-//                 approx_eq!(
-//                     f64,
-//                     point.latitude(),
-//                     test_case.geographic.latitude(),
-//                     ulps = ULPS
-//                 ),
-//                 "{}: latitude {:#?} ±ε == {:#?}",
-//                 test_case.name,
-//                 point.latitude(),
-//                 test_case.geographic.latitude(),
-//             );
+    #[test]
+    fn distance_must_not_fail() {
+        struct Test<'a> {
+            name: &'a str,
+            from: GeographicPoint,
+            to: GeographicPoint,
+            distance: f64,
+        }
 
-//             assert!(
-//                 approx_eq!(
-//                     f64,
-//                     point.altitude(),
-//                     test_case.geographic.altitude(),
-//                     ulps = ULPS
-//                 ),
-//                 "{}: altitude {:#?} ±ε == {:#?}",
-//                 test_case.name,
-//                 point.altitude(),
-//                 test_case.geographic.altitude(),
-//             );
-//         });
-//     }
+        vec![
+            Test {
+                name: "Same point must be zero",
+                from: GeographicPoint::default(),
+                to: GeographicPoint::default(),
+                distance: 0.,
+            },
+            Test {
+                name: "Oposite points in the horizontal",
+                from: GeographicPoint::default(),
+                to: GeographicPoint::default().with_longitude(Longitude::from(-PI)),
+                distance: PI,
+            },
+            Test {
+                name: "Oposite points in the vertical",
+                from: GeographicPoint::default().with_latitude(Latitude::from(FRAC_PI_2)),
+                to: GeographicPoint::default().with_latitude(Latitude::from(-FRAC_PI_2)),
+                distance: PI,
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let distance = test.from.distance(&test.to);
 
-//     #[test]
-//     fn distance_must_not_fail() {
-//         struct TestCase<'a> {
-//             name: &'a str,
-//             from: GeographicPoint,
-//             to: GeographicPoint,
-//             distance: f64,
-//         }
-
-//         vec![
-//             TestCase {
-//                 name: "Same point must be zero",
-//                 from: GeographicPoint::default(),
-//                 to: GeographicPoint::default(),
-//                 distance: 0.,
-//             },
-//             TestCase {
-//                 name: "Oposite points in the horizontal",
-//                 from: GeographicPoint::default(),
-//                 to: GeographicPoint::default().with_longitude(-PI),
-//                 distance: PI,
-//             },
-//             TestCase {
-//                 name: "Oposite points in the vertical",
-//                 from: GeographicPoint::default().with_latitude(FRAC_PI_2),
-//                 to: GeographicPoint::default().with_latitude(-FRAC_PI_2),
-//                 distance: PI,
-//             },
-//         ]
-//         .into_iter()
-//         .for_each(|test_case| {
-//             let got = test_case.from.distance(&test_case.to);
-
-//             assert!(
-//                 approx_eq!(f64, got, test_case.distance, ulps = ULPS),
-//                 "{}: distance {:#?} ±ε == {:#?}",
-//                 test_case.name,
-//                 got,
-//                 test_case.distance,
-//             )
-//         });
-//     }
-// }
+            assert_eq!(
+                distance, test.distance,
+                "{}: distance {} ±ε == {}",
+                test.name, distance, test.distance,
+            )
+        });
+    }
+}
