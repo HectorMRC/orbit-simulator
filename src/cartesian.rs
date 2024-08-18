@@ -80,7 +80,7 @@ impl CartesianPoint {
         self.0[2]
     }
 
-    /// Returns the normal version of the [CartesianPoint], which length is exactly 1.
+    /// Returns the [CartesianPoint] representing the unitary vector of self.
     pub fn unit(&self) -> Self {
         self.0.normalize().into()
     }
@@ -270,7 +270,7 @@ mod tests {
                 "{}: got unit = {:?}, want {:?}",
                 test.name, unit, test.output
             );
-        })
+            })
     }
 
     #[test]
