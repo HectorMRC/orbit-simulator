@@ -1,4 +1,7 @@
-use std::f64::consts::{FRAC_PI_2, PI};
+use std::{
+    f64::consts::{FRAC_PI_2, PI},
+    ops::{Add, Sub},
+};
 
 use nalgebra::{Matrix3, Vector3};
 
@@ -14,6 +17,28 @@ where
 {
     fn from(value: T) -> Self {
         CartesianPoint(value.into())
+    }
+}
+
+impl PartialOrd for CartesianPoint {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Add<f64> for CartesianPoint {
+    type Output = Self;
+
+    fn add(self, rhs: f64) -> Self::Output {
+        Self::from(self.0.add_scalar(rhs))
+    }
+}
+
+impl Sub<f64> for CartesianPoint {
+    type Output = Self;
+
+    fn sub(self, rhs: f64) -> Self::Output {
+        Self::from(self.0.add_scalar(-rhs))
     }
 }
 
@@ -99,87 +124,81 @@ impl CartesianPoint {
     pub fn cross(&self, other: &CartesianPoint) -> Self {
         self.0.cross(&other.0).into()
     }
+}
 
-    /// Returns the [CartesianPoint] resulting from rotating self theta radians around the edge
-    /// passing by the origin and the given axis point.
-    pub fn rotate(&self, axis: Self, theta: f64) -> Self {
-        let mut rotated_point = *self;
+/// Implements the [Rodrigues' rotation formula](https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula)
+/// through which an arbitrary [CartesianPoint]s can be rotated given an axis and an angle of
+/// rotation.
+///
+/// ## Statement
+/// Being v a vector in ℝ3 and k a unit vector describing an axis of rotation about which v rotates
+/// by an angle θ, the Rodrigues' rotation formula rotates v according to the right hand rule.
+///
+/// ## Example
+/// ```
+/// use std::f64::consts::FRAC_PI_2;
+/// use globe_rs::{approx_eq, CartesianPoint, RotationMatrix};
+///
+/// let rotated = RotationMatrix::default()
+///     .with_axis(CartesianPoint::from([1., 0., 0.]))
+///     .with_theta(FRAC_PI_2)
+///     .rotate(&CartesianPoint::from([0., 1., 0.]));
+///
+/// // due precision error both values may not be exactly the same  
+/// let epsilon = 0.0000000000000001;
+///
+/// assert!(
+///     approx_eq(rotated, CartesianPoint::from([0., 0., 1.]), epsilon),
+///     "point at 1y should be rotated around the x axis to 1z"
+/// );
+/// ```
+#[derive(Debug, Default)]
+pub struct RotationMatrix {
+    axis: CartesianPoint,
+    theta: f64,
+}
 
-        if rotated_point.0.normalize() == axis.0.normalize() {
-            // the point belongs to the axis line, so the rotation takes no effect
-            return rotated_point;
-        }
+impl RotationMatrix {
+    pub fn with_axis(mut self, axis: CartesianPoint) -> Self {
+        self.axis = axis.unit();
+        self
+    }
 
-        let d = (axis.y().powi(2) + axis.z().powi(2)).sqrt();
-        let cd = axis.z() * d;
+    pub fn with_theta(mut self, theta: f64) -> Self {
+        self.theta = theta;
+        self
+    }
 
-        let rz = Matrix3::new(
-            theta.cos(),
-            theta.sin(),
-            0.,
-            -theta.sin(),
-            theta.cos(),
-            0.,
-            0.,
-            0.,
-            1.,
+    pub fn rotate(&self, point: &CartesianPoint) -> CartesianPoint {
+        let sin_theta = self.theta.sin();
+        let cos_theta = self.theta.cos();
+        let sub_1_cos_theta = 1. - cos_theta;
+
+        let x = self.axis.x();
+        let y = self.axis.y();
+        let z = self.axis.z();
+
+        let matrix = Matrix3::new(
+            cos_theta + x.powi(2) * sub_1_cos_theta,
+            x * y * sub_1_cos_theta - z * sin_theta,
+            x * z * sub_1_cos_theta + y * sin_theta,
+            y * x * sub_1_cos_theta + z * sin_theta,
+            cos_theta + y.powi(2) * sub_1_cos_theta,
+            y * z * sub_1_cos_theta - x * sin_theta,
+            z * x * sub_1_cos_theta - y * sin_theta,
+            z * y * sub_1_cos_theta + x * sin_theta,
+            cos_theta + z.powi(2) * sub_1_cos_theta,
         );
 
-        let ry = Matrix3::new(d, 0., -axis.x(), 0., 1., 0., axis.x(), 0., d);
-        let ry_inv = Matrix3::new(d, 0., axis.x(), 0., 1., 0., -axis.x(), 0., d);
-
-        if d == 0. {
-            // the rotation axis is already perpendicular to the xy plane.
-            rotated_point.0 = ry_inv * rz * ry * rotated_point.0;
-            return rotated_point;
-        }
-
-        let c_div_d =
-            Vector3::new(0., 0., axis.z()).dot(&Vector3::new(0., axis.y(), axis.z())) / cd;
-
-        let b_div_d = Vector3::new(0., 0., axis.z())
-            .cross(&Vector3::new(0., axis.y(), axis.z()))
-            .norm()
-            / cd;
-
-        let rx = Matrix3::new(1., 0., 0., 0., c_div_d, -b_div_d, 0., b_div_d, c_div_d);
-        let rx_inv = Matrix3::new(1., 0., 0., 0., c_div_d, b_div_d, 0., -b_div_d, c_div_d);
-
-        rotated_point.0 = rx_inv * ry_inv * rz * ry * rx * rotated_point.0;
-        rotated_point
+        (matrix * point.0).into()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        f64::consts::{FRAC_PI_2, PI},
-        ops::{Add, Sub},
-    };
+    use std::f64::consts::{FRAC_PI_2, PI};
 
-    use crate::{tests::approx_eq, CartesianPoint, GeographicPoint, Latitude, Longitude};
-
-    impl PartialOrd for CartesianPoint {
-        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-            self.0.partial_cmp(&other.0)
-        }
-    }
-
-    impl Add<f64> for CartesianPoint {
-        type Output = Self;
-
-        fn add(self, rhs: f64) -> Self::Output {
-            Self::from(self.0.add_scalar(rhs))
-        }
-    }
-
-    impl Sub<f64> for CartesianPoint {
-        type Output = Self;
-
-        fn sub(self, rhs: f64) -> Self::Output {
-            Self::from(self.0.add_scalar(-rhs))
-        }
-    }
+    use crate::{approx_eq, CartesianPoint, GeographicPoint, Latitude, Longitude, RotationMatrix};
 
     #[test]
     fn cartesian_from_geographic_must_not_fail() {
@@ -270,11 +289,11 @@ mod tests {
                 "{}: got unit = {:?}, want {:?}",
                 test.name, unit, test.output
             );
-            })
+        })
     }
 
     #[test]
-    fn rotate_must_not_fail() {
+    fn rotation_matrix_must_not_fail() {
         const EPSILON: f64 = 0.0000000000000003;
 
         struct Test {
@@ -305,7 +324,7 @@ mod tests {
                 theta: FRAC_PI_2,
                 axis: CartesianPoint::from([1., 0., 0.]),
                 input: CartesianPoint::from([0., 1., 0.]),
-                output: CartesianPoint::from([0., 0., -1.]),
+                output: CartesianPoint::from([0., 0., 1.]),
             },
             Test {
                 name: "full rotation on the z axis must not change the y point",
@@ -326,7 +345,7 @@ mod tests {
                 theta: FRAC_PI_2,
                 axis: CartesianPoint::from([0., 0., 1.]),
                 input: CartesianPoint::from([0., 1., 0.]),
-                output: CartesianPoint::from([1., 0., 0.]),
+                output: CartesianPoint::from([-1., 0., 0.]),
             },
             Test {
                 name: "rotate over itself must not change the point",
@@ -338,11 +357,14 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let rotated = test.input.rotate(test.axis, test.theta);
+            let rotated = RotationMatrix::default()
+                .with_axis(test.axis)
+                .with_theta(test.theta)
+                .rotate(&test.input);
 
             assert!(
                 approx_eq(rotated, test.output, EPSILON),
-                "{}: {:?} ±ε = {:?}",
+                "{}: got rotated = {:?}, want ±ε = {:?}",
                 test.name,
                 rotated,
                 test.output

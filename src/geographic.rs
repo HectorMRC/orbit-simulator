@@ -232,7 +232,7 @@ impl GeographicPoint {
 mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
-    use crate::{tests::approx_eq, Altitude, CartesianPoint, GeographicPoint, Latitude, Longitude};
+    use crate::{approx_eq, Altitude, CartesianPoint, GeographicPoint, Latitude, Longitude};
 
     #[test]
     fn longitude_must_not_exceed_boundaries() {
