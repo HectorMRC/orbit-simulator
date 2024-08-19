@@ -94,12 +94,12 @@ impl Longitude {
 /// let equivalent_latitude = Latitude::from(PI / 4.);
 ///
 /// // due precision error both values may not be exactly the same  
-/// let epsilon = 0.0000000000000001;
+/// let abs_error = 0.0000000000000001;
 ///
 /// assert!(
-///     equivalent_latitude.as_f64() + epsilon >= overflowing_latitude.as_f64() &&
-///     equivalent_latitude.as_f64() - epsilon <= overflowing_latitude.as_f64(),
-///     "the overflowing latitude should be as the equivalent latitude ± ε"
+///     equivalent_latitude.as_f64() + abs_error >= overflowing_latitude.as_f64() &&
+///     equivalent_latitude.as_f64() - abs_error <= overflowing_latitude.as_f64(),
+///     "the overflowing latitude should be as the equivalent latitude ± e"
 /// );
 /// ```
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     fn latitude_must_not_exceed_boundaries() {
-        const EPSILON: f64 = 0.0000000000000002;
+        const ABS_ERROR: f64 = 0.0000000000000002;
 
         struct Test {
             name: &'static str,
@@ -358,7 +358,7 @@ mod tests {
         .for_each(|test| {
             let latitude = Latitude::from(test.input).as_f64();
             assert!(
-                approx_eq(latitude, test.output, EPSILON),
+                approx_eq(latitude, test.output, ABS_ERROR),
                 "{}: got latitude = {}, want {}",
                 test.name,
                 latitude,
@@ -532,7 +532,7 @@ mod tests {
 
             assert_eq!(
                 distance, test.distance,
-                "{}: distance {} ± ε == {}",
+                "{}: distance {} ± e == {}",
                 test.name, distance, test.distance,
             )
         });

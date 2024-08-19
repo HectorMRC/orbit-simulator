@@ -145,10 +145,10 @@ impl CartesianPoint {
 ///     .rotate(&CartesianPoint::from([0., 1., 0.]));
 ///
 /// // due precision error both values may not be exactly the same  
-/// let epsilon = 0.0000000000000001;
+/// let abs_error = 0.0000000000000001;
 ///
 /// assert!(
-///     approx_eq(rotated, CartesianPoint::from([0., 0., 1.]), epsilon),
+///     approx_eq(rotated, CartesianPoint::from([0., 0., 1.]), abs_error),
 ///     "point at y1 should be rotated around the x axis to z1"
 /// );
 /// ```
@@ -294,7 +294,7 @@ mod tests {
 
     #[test]
     fn rotation_matrix_must_not_fail() {
-        const EPSILON: f64 = 0.0000000000000003;
+        const ABS_ERROR: f64 = 0.0000000000000003;
 
         struct Test {
             name: &'static str,
@@ -363,8 +363,8 @@ mod tests {
                 .rotate(&test.input);
 
             assert!(
-                approx_eq(rotated, test.output, EPSILON),
-                "{}: got rotated = {:?}, want ± ε = {:?}",
+                approx_eq(rotated, test.output, ABS_ERROR),
+                "{}: got rotated = {:?}, want ± e = {:?}",
                 test.name,
                 rotated,
                 test.output
