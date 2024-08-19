@@ -184,7 +184,7 @@ impl Altitude {
     }
 }
 
-/// Represents an arbitrary point in space using the geographic system of coordinates.
+/// An arbitrary point in space using the geographic system of coordinates.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct GeographicPoint {
     pub longitude: Longitude,
@@ -320,7 +320,7 @@ mod tests {
                 test.name, normal, test.output
             );
         });
-    }
+    }   
 
     #[test]
     fn latitude_must_not_exceed_boundaries() {
