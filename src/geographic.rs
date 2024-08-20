@@ -42,6 +42,12 @@ impl From<f64> for Longitude {
     }
 }
 
+impl From<Longitude> for f64 {
+    fn from(value: Longitude) -> Self {
+        value.0
+    }
+}
+
 impl From<CartesianPoint> for Longitude {
     /// Computes the [Longitude] of the given [CartesianPoint] as specified by the [Spherical
     /// coordinate system](https://en.wikipedia.org/wiki/Spherical_coordinate_system).
@@ -61,11 +67,6 @@ impl From<CartesianPoint> for Longitude {
 }
 
 impl Longitude {
-    /// Returns the longitude value as an f64.
-    pub fn as_f64(&self) -> f64 {
-        self.0
-    }
-
     /// Returns the [f64] representation of tha longitude in the range of __[-1.0, 1.0)__,
     /// resulting from dividing self with `π`.
     pub fn normal(&self) -> f64 {
@@ -115,6 +116,12 @@ impl From<f64> for Latitude {
     }
 }
 
+impl From<Latitude> for f64 {
+    fn from(value: Latitude) -> Self {
+        value.0
+    }
+}
+
 impl From<CartesianPoint> for Latitude {
     /// Computes the [Latitude] of the given [CartesianPoint] as specified by the [Spherical
     /// coordinate system](https://en.wikipedia.org/wiki/Spherical_coordinate_system).
@@ -132,11 +139,6 @@ impl From<CartesianPoint> for Latitude {
 }
 
 impl Latitude {
-    /// Returns the latitude value as an f64.
-    pub fn as_f64(&self) -> f64 {
-        self.0
-    }
-
     /// Returns the [f64] representation of tha latitude in the range of __[-1.0, 1.0)__, resulting
     /// from dividing self with `π/2`.
     pub fn normal(&self) -> f64 {
@@ -169,18 +171,17 @@ impl From<f64> for Altitude {
     }
 }
 
+impl From<Altitude> for f64 {
+    fn from(value: Altitude) -> Self {
+        value.0
+    }
+}
+
 impl From<CartesianPoint> for Altitude {
     /// Computes the [Altitude] of the given [CartesianPoint] as specified by the [Spherical
     /// coordinate system](https://en.wikipedia.org/wiki/Spherical_coordinate_system).
     fn from(point: CartesianPoint) -> Self {
         f64::sqrt(point.x().powi(2) + point.y().powi(2) + point.z().powi(2)).into()
-    }
-}
-
-impl Altitude {
-    /// Returns the altitude value as an f64.
-    pub fn as_f64(&self) -> f64 {
-        self.0
     }
 }
 
@@ -220,9 +221,9 @@ impl GeographicPoint {
     /// Computes the [great-circle distance](https://en.wikipedia.org/wiki/Great-circle_distance)
     /// from self to the given point (in radiants).
     pub fn distance(&self, other: &GeographicPoint) -> f64 {
-        let prod_latitude_sin = self.latitude.as_f64().sin() * other.latitude.as_f64().sin();
-        let prod_latitude_cos = self.latitude.as_f64().cos() * other.latitude.as_f64().cos();
-        let longitude_diff = (self.longitude.as_f64() - other.longitude.as_f64()).abs();
+        let prod_latitude_sin = f64::from(self.latitude).sin() * f64::from(other.latitude).sin();
+        let prod_latitude_cos = f64::from(self.latitude).cos() * f64::from(other.latitude).cos();
+        let longitude_diff = (f64::from(self.longitude) - f64::from(other.longitude)).abs();
 
         (prod_latitude_sin + prod_latitude_cos * longitude_diff.cos()).acos()
     }
@@ -266,7 +267,8 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let longitude = Longitude::from(test.input).as_f64();
+            let longitude: f64 = Longitude::from(test.input).into();
+
             assert_eq!(
                 longitude, test.output,
                 "{}: got longitude = {}, want {}",
@@ -356,7 +358,8 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let latitude = Latitude::from(test.input).as_f64();
+            let latitude: f64 = Latitude::from(test.input).into();
+            
             assert!(
                 approx_eq(latitude, test.output, ABS_ERROR),
                 "{}: got latitude = {}, want {}",
@@ -473,8 +476,8 @@ mod tests {
                 test.output.longitude,
                 "{}: got longitude = {}, want {}",
                 test.name,
-                point.longitude.as_f64(),
-                test.output.longitude.as_f64(),
+                f64::from(point.longitude),
+                f64::from(test.output.longitude),
             );
 
             assert_eq!(
@@ -482,8 +485,8 @@ mod tests {
                 test.output.latitude,
                 "{}: got latitude = {}, want {}",
                 test.name,
-                point.latitude.as_f64(),
-                test.output.latitude.as_f64(),
+                f64::from(point.latitude),
+                f64::from(test.output.latitude),
             );
 
             assert_eq!(
@@ -491,8 +494,8 @@ mod tests {
                 test.output.altitude,
                 "{}: got altitude = {}, want {}",
                 test.name,
-                point.altitude.as_f64(),
-                test.output.altitude.as_f64(),
+                f64::from(point.altitude),
+                f64::from(test.output.altitude),
             );
         });
     }

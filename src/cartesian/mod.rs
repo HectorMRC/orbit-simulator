@@ -69,13 +69,13 @@ impl Div<f64> for CartesianPoint {
 
 impl From<GeographicPoint> for CartesianPoint {
     fn from(point: GeographicPoint) -> Self {
-        let radial_distance = match point.altitude.as_f64() {
+        let radial_distance = match point.altitude.into() {
             altitude if altitude == 0. => 1.,
             altitude => altitude,
         };
 
-        let theta = FRAC_PI_2 - point.latitude.as_f64();
-        let phi = point.longitude.as_f64();
+        let theta = FRAC_PI_2 - f64::from(point.latitude);
+        let phi = point.longitude.into();
 
         // improves sin & cos precision for exact numbers
         let precise_sin_cos = |rad: f64| -> (f64, f64) {

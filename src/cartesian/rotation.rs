@@ -1,5 +1,7 @@
 use nalgebra::Matrix3;
 
+use crate::Radiant;
+
 use super::CartesianPoint;
 
 /// Implements the [geometric transformation](https://en.wikipedia.org/wiki/Rotation_matrix)
@@ -30,8 +32,10 @@ use super::CartesianPoint;
 /// ```
 #[derive(Debug, Default)]
 pub struct Rotation {
+    /// The axis of rotation about which perform the transformation.
     pub axis: CartesianPoint,
-    pub theta: f64,
+    /// The angle of rotation.
+    pub theta: Radiant,
 }
 
 impl Rotation {
@@ -40,15 +44,15 @@ impl Rotation {
         self
     }
 
-    pub fn with_theta(mut self, theta: f64) -> Self {
+    pub fn with_theta(mut self, theta: Radiant) -> Self {
         self.theta = theta;
         self
     }
 
     /// Performs the rotation over the given point.
     pub fn rotate(&self, point: &CartesianPoint) -> CartesianPoint {
-        let sin_theta = self.theta.sin();
-        let cos_theta = self.theta.cos();
+        let sin_theta = f64::from(self.theta).sin();
+        let cos_theta = f64::from(self.theta).cos();
         let sub_1_cos_theta = 1. - cos_theta;
 
         let x = self.axis.x();
@@ -75,7 +79,7 @@ impl Rotation {
 mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
-    use crate::{approx_eq, CartesianPoint, Rotation};
+    use crate::{approx_eq, CartesianPoint, Radiant, Rotation};
 
     #[test]
     fn rotation_matrix_must_not_fail() {
@@ -83,7 +87,7 @@ mod tests {
 
         struct Test {
             name: &'static str,
-            theta: f64,
+            theta: Radiant,
             axis: CartesianPoint,
             input: CartesianPoint,
             output: CartesianPoint,
@@ -92,49 +96,49 @@ mod tests {
         vec![
             Test {
                 name: "full rotation on the x axis must not change the y point",
-                theta: 2. * PI,
+                theta: Radiant::from(2. * PI),
                 axis: CartesianPoint::from([1., 0., 0.]),
                 input: CartesianPoint::from([0., 1., 0.]),
                 output: CartesianPoint::from([0., 1., 0.]),
             },
             Test {
                 name: "half of a whole rotation on the x axis must change the y point",
-                theta: PI,
+                theta: Radiant::from(PI),
                 axis: CartesianPoint::from([1., 0., 0.]),
                 input: CartesianPoint::from([0., 1., 0.]),
                 output: CartesianPoint::from([0., -1., 0.]),
             },
             Test {
                 name: "a quarter of a whole rotation on the x axis must change the y point",
-                theta: FRAC_PI_2,
+                theta: Radiant::from(FRAC_PI_2),
                 axis: CartesianPoint::from([1., 0., 0.]),
                 input: CartesianPoint::from([0., 1., 0.]),
                 output: CartesianPoint::from([0., 0., 1.]),
             },
             Test {
                 name: "full rotation on the z axis must not change the y point",
-                theta: 2. * PI,
+                theta: Radiant::from(2. * PI),
                 axis: CartesianPoint::from([0., 0., 1.]),
                 input: CartesianPoint::from([0., 1., 0.]),
                 output: CartesianPoint::from([0., 1., 0.]),
             },
             Test {
                 name: "half of a whole rotation on the z axis must change the y point",
-                theta: PI,
+                theta: Radiant::from(PI),
                 axis: CartesianPoint::from([0., 0., 1.]),
                 input: CartesianPoint::from([0., 1., 0.]),
                 output: CartesianPoint::from([0., -1., 0.]),
             },
             Test {
                 name: "a quarter of a whole rotation on the z axis must change the y point",
-                theta: FRAC_PI_2,
+                theta: Radiant::from(FRAC_PI_2),
                 axis: CartesianPoint::from([0., 0., 1.]),
                 input: CartesianPoint::from([0., 1., 0.]),
                 output: CartesianPoint::from([-1., 0., 0.]),
             },
             Test {
                 name: "rotate over itself must not change the point",
-                theta: FRAC_PI_2,
+                theta: Radiant::from(FRAC_PI_2),
                 axis: CartesianPoint::from([0., 1., 0.]),
                 input: CartesianPoint::from([0., 1., 0.]),
                 output: CartesianPoint::from([0., 1., 0.]),

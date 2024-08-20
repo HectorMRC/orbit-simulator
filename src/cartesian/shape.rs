@@ -1,15 +1,11 @@
+use crate::Radiant;
+
 use super::CartesianPoint;
 
 /// A succession of [CartesianPoint]s representing an arbitrary shape.
 #[derive(Default)]
 pub struct Shape {
     pub points: Vec<CartesianPoint>,        
-}
-
-impl From<Arc> for Shape {
-    fn from(value: Arc) -> Self {
-        todo!()
-    }
 }
 
 /// An arc shape, which is simply a segment or portion of a circle's circumference.
@@ -19,8 +15,8 @@ pub struct Arc {
     pub center: CartesianPoint,
     /// The starting point of the arc.
     pub start: CartesianPoint,
-    /// The ending point of the arc.
-    pub end: CartesianPoint,
+    /// The angle of the arc.
+    pub theta: Radiant,
 }
 
 impl Arc {
@@ -29,13 +25,13 @@ impl Arc {
         self
     }
 
-    pub fn with_start(mut self, start: CartesianPoint) -> Self {
+    pub fn with_starting_point(mut self, start: CartesianPoint) -> Self {
         self.start = start;
         self
     }
 
-    pub fn with_end(mut self, end: CartesianPoint) -> Self {
-        self.end = end;
+    pub fn with_theta(mut self, theta: Radiant) -> Self {
+        self.theta = theta;
         self
     }
 }
