@@ -15,11 +15,11 @@ use super::CartesianPoint;
 /// ## Example
 /// ```
 /// use std::f64::consts::FRAC_PI_2;
-/// use globe_rs::{approx_eq, CartesianPoint, RotationMatrix};
+/// use globe_rs::{approx_eq, CartesianPoint, Rotation};
 ///
-/// let rotated = RotationMatrix::default()
+/// let rotated = Rotation::default()
 ///     .with_axis(CartesianPoint::from([1., 0., 0.]))
-///     .with_theta(FRAC_PI_2)
+///     .with_theta(FRAC_PI_2.into())
 ///     .rotate(&CartesianPoint::from([0., 1., 0.]));
 ///
 /// // due precision error both values may not be exactly the same  
@@ -50,7 +50,7 @@ impl Rotation {
     }
 
     /// Performs the rotation over the given point.
-    pub fn rotate(&self, point: &CartesianPoint) -> CartesianPoint {
+    pub fn rotate(&self, point: CartesianPoint) -> CartesianPoint {
         let sin_theta = f64::from(self.theta).sin();
         let cos_theta = f64::from(self.theta).cos();
         let sub_1_cos_theta = 1. - cos_theta;
@@ -71,7 +71,7 @@ impl Rotation {
             cos_theta + z.powi(2) * sub_1_cos_theta,
         );
 
-        (rotation * point.0).into()       
+        (rotation * point.0).into()
     }
 }
 
@@ -82,7 +82,7 @@ mod tests {
     use crate::{approx_eq, CartesianPoint, Radiant, Rotation};
 
     #[test]
-    fn rotation_matrix_must_not_fail() {
+    fn rotation_must_not_fail() {
         const ABS_ERROR: f64 = 0.0000000000000003;
 
         struct Test {
@@ -149,7 +149,7 @@ mod tests {
             let rotated = Rotation::default()
                 .with_axis(test.axis)
                 .with_theta(test.theta)
-                .rotate(&test.input);
+                .rotate(test.input);
 
             assert!(
                 approx_eq(rotated, test.output, ABS_ERROR),

@@ -3,12 +3,16 @@ use std::f64::consts::PI;
 pub const TWO_PI: f64 = 2. * PI;
 
 /// The [radiant](https://en.wikipedia.org/wiki/Radian) unit, which is always a positive number in
-/// the range of [0, 2π).
+/// the range of [0, 2π].
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Radiant(f64);
 
 impl From<f64> for Radiant {
     fn from(value: f64) -> Self {
+        if (0. ..= TWO_PI).contains(&value) {
+            return Self(value)
+        }
+
         let mut modulus = value % TWO_PI;
         if value.is_sign_negative() {
             modulus = (modulus + TWO_PI) % TWO_PI;

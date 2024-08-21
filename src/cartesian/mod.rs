@@ -1,6 +1,6 @@
 use std::{
     f64::consts::{FRAC_PI_2, PI},
-    ops::{Add, Div, Mul, Sub},
+    ops::{Add, Div, Mul, Neg, Sub},
 };
 
 use nalgebra::Vector3;
@@ -9,6 +9,9 @@ use crate::GeographicPoint;
 
 mod rotation;
 pub use rotation::*;
+
+mod scaling;
+pub use scaling::*;
 
 mod shape;
 pub use shape::*;
@@ -64,6 +67,14 @@ impl Div<f64> for CartesianPoint {
 
     fn div(self, rhs: f64) -> Self::Output {
         Self::from(self.0.div(rhs))
+    }
+}
+
+impl Neg for CartesianPoint {
+    type Output = CartesianPoint;
+
+    fn neg(self) -> Self::Output {
+        Self::from(-self.0)
     }
 }
 
@@ -136,18 +147,18 @@ impl CartesianPoint {
     }
 
     /// Returns the distance between self and the given point.
-    pub fn distance(&self, other: &CartesianPoint) -> f64 {
-        let square_diff = |p1: f64, p2: f64| -> f64 { (p1 - p2).powi(2) };
-
-        (square_diff(self.x(), other.x())
-            + square_diff(self.y(), other.y())
-            + square_diff(self.z(), other.z()))
-        .sqrt()
+    pub fn distance(&self, rhs: &CartesianPoint) -> f64 {
+        self.0.metric_distance(&rhs.0)
     }
 
     /// Performs the cartesian product between self and the given point.
     pub fn cross(&self, other: &CartesianPoint) -> Self {
         self.0.cross(&other.0).into()
+    }
+
+    /// Returns the distance of the point relative to the origin of coordinates.
+    pub fn magnitude(&self) -> f64 {
+        self.0.magnitude()
     }
 }
 

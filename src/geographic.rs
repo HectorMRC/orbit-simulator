@@ -98,8 +98,8 @@ impl Longitude {
 /// let abs_error = 0.0000000000000001;
 ///
 /// assert!(
-///     equivalent_latitude.as_f64() + abs_error >= overflowing_latitude.as_f64() &&
-///     equivalent_latitude.as_f64() - abs_error <= overflowing_latitude.as_f64(),
+///     f64::from(equivalent_latitude) + abs_error >= f64::from(overflowing_latitude) &&
+///     f64::from(equivalent_latitude) - abs_error <= f64::from(overflowing_latitude),
 ///     "the overflowing latitude should be as the equivalent latitude ± e"
 /// );
 /// ```
