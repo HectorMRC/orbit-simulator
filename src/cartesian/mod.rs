@@ -4,20 +4,12 @@ use std::{
 };
 
 use nalgebra::{iter::MatrixIter, ArrayStorage, Const, Vector3};
-
-mod rotation;
-pub use rotation::*;
-
-mod scaling;
-pub use scaling::*;
-
-mod shape;
-pub use shape::*;
-
-mod translation;
-pub use translation::*;
+use transform::Transform;
 
 use crate::geographic::GeographicPoint;
+
+pub mod shape;
+pub mod transform;
 
 /// An arbitrary point in space using the cartesian system of coordinates.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -131,6 +123,11 @@ impl CartesianPoint {
     /// Returns the distance of the point relative to the origin of coordinates.
     pub fn magnitude(&self) -> f64 {
         self.0.magnitude()
+    }
+
+    /// Performs the given transformation over self.
+    pub fn transform<T: Transform>(self, transformation: T) -> Self {
+        transformation.transform(self)
     }
 }
 

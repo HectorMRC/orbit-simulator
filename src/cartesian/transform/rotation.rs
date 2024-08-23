@@ -2,7 +2,7 @@ use nalgebra::Matrix3;
 
 use crate::Radiant;
 
-use super::CartesianPoint;
+use super::{CartesianPoint, Transform};
 
 /// Implements the [geometric transformation](https://en.wikipedia.org/wiki/Rotation_matrix)
 /// through which an arbitrary [CartesianPoint]s can be rotated given an axis and an angle of
@@ -35,7 +35,7 @@ use super::CartesianPoint;
 ///         );
 ///     });
 /// ```
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Rotation {
     /// The axis of rotation about which perform the transformation.
     pub axis: CartesianPoint,
@@ -43,19 +43,8 @@ pub struct Rotation {
     pub theta: Radiant,
 }
 
-impl Rotation {
-    pub fn with_axis(mut self, axis: CartesianPoint) -> Self {
-        self.axis = axis.unit();
-        self
-    }
-
-    pub fn with_theta(mut self, theta: Radiant) -> Self {
-        self.theta = theta;
-        self
-    }
-
-    /// Performs the rotation over the given point.
-    pub fn rotate(&self, point: CartesianPoint) -> CartesianPoint {
+impl Transform for Rotation {
+    fn transform(&self, point: CartesianPoint) -> CartesianPoint {
         let sin_theta = f64::from(self.theta).sin();
         let cos_theta = f64::from(self.theta).cos();
         let sub_1_cos_theta = 1. - cos_theta;
@@ -80,13 +69,28 @@ impl Rotation {
     }
 }
 
+impl Rotation {
+    pub fn with_axis(mut self, axis: CartesianPoint) -> Self {
+        self.axis = axis.unit();
+        self
+    }
+
+    pub fn with_theta(mut self, theta: Radiant) -> Self {
+        self.theta = theta;
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
     use crate::{
         approx_eq,
-        cartesian::{CartesianPoint, Rotation},
+        cartesian::{
+            transform::{Rotation, Transform},
+            CartesianPoint,
+        },
         Radiant,
     };
 
@@ -158,7 +162,7 @@ mod tests {
             let rotated = Rotation::default()
                 .with_axis(test.axis)
                 .with_theta(test.theta)
-                .rotate(test.input);
+                .transform(test.input);
 
             rotated
                 .into_iter()

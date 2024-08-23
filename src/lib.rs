@@ -14,7 +14,7 @@ pub use radiant::*;
 pub fn approx_eq<T, E>(v1: T, v2: T, abs_error: E) -> bool
 where
     T: Sub<Output = T> + Signed,
-    E: PartialOrd<T>
+    E: PartialOrd<T>,
 {
     abs_error >= (v1 - v2).abs()
 }

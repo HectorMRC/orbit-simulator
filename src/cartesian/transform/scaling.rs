@@ -1,22 +1,16 @@
 use nalgebra::Matrix3;
 
-use super::CartesianPoint;
+use super::{CartesianPoint, Transform};
 
 /// Implements the [geometric transformation](https://en.wikipedia.org/wiki/Scaling_(geometry))
 /// through which an arbitrary [CartesianPoint]s can be scaled given a scale factor.
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Scaling {
     pub factor: f64,
 }
 
-impl Scaling {
-    pub fn with_factor(mut self, factor: f64) -> Self {
-        self.factor = factor;
-        self
-    }
-
-    /// Performs the scaling over the given point.
-    pub fn scale(&self, point: CartesianPoint) -> CartesianPoint {
+impl Transform for Scaling {
+    fn transform(&self, point: CartesianPoint) -> CartesianPoint {
         let scaling = Matrix3::new(
             self.factor,
             0.,
@@ -33,9 +27,19 @@ impl Scaling {
     }
 }
 
+impl Scaling {
+    pub fn with_factor(mut self, factor: f64) -> Self {
+        self.factor = factor;
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::cartesian::{CartesianPoint, Scaling};
+    use crate::cartesian::{
+        transform::{Scaling, Transform},
+        CartesianPoint,
+    };
 
     #[test]
     fn scaling_must_not_fail() {
@@ -70,7 +74,7 @@ mod tests {
         .for_each(|test| {
             let rotated = Scaling::default()
                 .with_factor(test.factor)
-                .scale(test.input);
+                .transform(test.input);
 
             assert_eq!(
                 rotated, test.output,

@@ -1,22 +1,28 @@
+use std::ops::Neg;
+
 use nalgebra::{Matrix4, Vector4};
 
-use super::CartesianPoint;
+use super::{CartesianPoint, Transform};
 
 /// Implements the [geometric transformation](https://en.wikipedia.org/wiki/Translation_(geometry))
 /// through which an arbitrary [CartesianPoint]s can be translated given a translation vector.
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Translation {
     pub vector: CartesianPoint,
 }
 
-impl Translation {
-    pub fn with_vector(mut self, vector: CartesianPoint) -> Self {
-        self.vector = vector;
-        self
-    }
+impl Neg for Translation {
+    type Output = Self;
 
-    /// Performs the translation over the given point.
-    pub fn translate(&self, point: CartesianPoint) -> CartesianPoint {
+    fn neg(self) -> Self::Output {
+        Self {
+            vector: -self.vector,
+        }
+    }
+}
+
+impl Transform for Translation {
+    fn transform(&self, point: CartesianPoint) -> CartesianPoint {
         let translation = Matrix4::new(
             1.,
             0.,
@@ -41,9 +47,19 @@ impl Translation {
     }
 }
 
+impl Translation {
+    pub fn with_vector(mut self, vector: CartesianPoint) -> Self {
+        self.vector = vector;
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::cartesian::{CartesianPoint, Translation};
+    use crate::cartesian::{
+        transform::{Transform, Translation},
+        CartesianPoint,
+    };
 
     #[test]
     fn translation_must_not_fail() {
@@ -70,14 +86,14 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let rotated = Translation::default()
+            let translated = Translation::default()
                 .with_vector(test.vector)
-                .translate(test.input);
+                .transform(test.input);
 
             assert_eq!(
-                rotated, test.output,
+                translated, test.output,
                 "{}: got rotated = {:?}, want ± e = {:?}",
-                test.name, rotated, test.output
+                test.name, translated, test.output
             );
         });
     }
