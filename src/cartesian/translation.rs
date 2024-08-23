@@ -41,10 +41,9 @@ impl Translation {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::{CartesianPoint, Translation};
+    use crate::cartesian::{CartesianPoint, Translation};
 
     #[test]
     fn translation_must_not_fail() {
@@ -76,12 +75,9 @@ mod tests {
                 .translate(test.input);
 
             assert_eq!(
-                rotated,
-                test.output,
+                rotated, test.output,
                 "{}: got rotated = {:?}, want ± e = {:?}",
-                test.name,
-                rotated,
-                test.output
+                test.name, rotated, test.output
             );
         });
     }

@@ -15,20 +15,25 @@ use super::CartesianPoint;
 /// ## Example
 /// ```
 /// use std::f64::consts::FRAC_PI_2;
-/// use globe_rs::{approx_eq, CartesianPoint, Rotation};
+/// use globe_rs::{approx_eq, cartesian::{CartesianPoint, Rotation}};
+///
+/// // due precision error both values may not be exactly the same  
+/// const ABS_ERROR: f64 = 0.0000000000000001;
 ///
 /// let rotated = Rotation::default()
 ///     .with_axis(CartesianPoint::from([1., 0., 0.]))
 ///     .with_theta(FRAC_PI_2.into())
-///     .rotate(&CartesianPoint::from([0., 1., 0.]));
+///     .rotate(CartesianPoint::from([0., 1., 0.]));
 ///
-/// // due precision error both values may not be exactly the same  
-/// let abs_error = 0.0000000000000001;
-///
-/// assert!(
-///     approx_eq(rotated, CartesianPoint::from([0., 0., 1.]), abs_error),
-///     "point at y1 should be rotated around the x axis to z1"
-/// );
+/// rotated
+///     .into_iter()
+///     .zip(CartesianPoint::from([0., 0., 1.]).into_iter())
+///     .for_each(|(&got, &want)| {
+///         assert!(
+///             approx_eq(got, want, ABS_ERROR),
+///             "point at y1 should be rotated around the x axis to z1: {rotated:?}",
+///         );
+///     });
 /// ```
 #[derive(Debug, Default)]
 pub struct Rotation {
@@ -79,7 +84,11 @@ impl Rotation {
 mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
-    use crate::{approx_eq, CartesianPoint, Radiant, Rotation};
+    use crate::{
+        approx_eq,
+        cartesian::{CartesianPoint, Rotation},
+        Radiant,
+    };
 
     #[test]
     fn rotation_must_not_fail() {
@@ -151,13 +160,18 @@ mod tests {
                 .with_theta(test.theta)
                 .rotate(test.input);
 
-            assert!(
-                approx_eq(rotated, test.output, ABS_ERROR),
-                "{}: got rotated = {:?}, want ± e = {:?}",
-                test.name,
-                rotated,
-                test.output
-            );
+            rotated
+                .into_iter()
+                .zip(test.output.into_iter())
+                .for_each(|(&got, &want)| {
+                    assert!(
+                        approx_eq(got, want, ABS_ERROR),
+                        "{}: got rotated = {:?}, want ± e = {:?}",
+                        test.name,
+                        rotated,
+                        test.output
+                    );
+                });
         });
     }
 }

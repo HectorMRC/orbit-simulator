@@ -1,11 +1,9 @@
 use std::{
     f64::consts::{FRAC_PI_2, PI},
-    ops::{Add, Div, Mul, Neg, Sub},
+    ops::Neg,
 };
 
-use nalgebra::Vector3;
-
-use crate::GeographicPoint;
+use nalgebra::{iter::MatrixIter, ArrayStorage, Const, Vector3};
 
 mod rotation;
 pub use rotation::*;
@@ -18,6 +16,8 @@ pub use shape::*;
 
 mod translation;
 pub use translation::*;
+
+use crate::geographic::GeographicPoint;
 
 /// An arbitrary point in space using the cartesian system of coordinates.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -32,41 +32,13 @@ where
     }
 }
 
-impl PartialOrd for CartesianPoint {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
-    }
-}
+impl<'a> IntoIterator for &'a CartesianPoint {
+    type Item = &'a f64;
 
-impl Add<f64> for CartesianPoint {
-    type Output = Self;
+    type IntoIter = MatrixIter<'a, f64, Const<3>, Const<1>, ArrayStorage<f64, 3, 1>>;
 
-    fn add(self, rhs: f64) -> Self::Output {
-        Self::from(self.0.add_scalar(rhs))
-    }
-}
-
-impl Sub<f64> for CartesianPoint {
-    type Output = Self;
-
-    fn sub(self, rhs: f64) -> Self::Output {
-        Self::from(self.0.add_scalar(-rhs))
-    }
-}
-
-impl Mul<f64> for CartesianPoint {
-    type Output = Self;
-
-    fn mul(self, rhs: f64) -> Self::Output {
-        Self::from(self.0.mul(rhs))
-    }
-}
-
-impl Div<f64> for CartesianPoint {
-    type Output = Self;
-
-    fn div(self, rhs: f64) -> Self::Output {
-        Self::from(self.0.div(rhs))
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -166,7 +138,10 @@ impl CartesianPoint {
 mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
-    use crate::{CartesianPoint, GeographicPoint, Latitude, Longitude};
+    use crate::{
+        cartesian::CartesianPoint,
+        geographic::{GeographicPoint, Latitude, Longitude},
+    };
 
     #[test]
     fn cartesian_from_geographic_must_not_fail() {
@@ -215,7 +190,9 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let point = CartesianPoint::from(test.input);
+            let from = CartesianPoint::from(test.input);
+            let from = from;
+            let point = from;
             assert_eq!(
                 point, test.output,
                 "{}: got cartesian point = {:#?}, want {:#?}",

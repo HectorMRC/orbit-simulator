@@ -35,7 +35,7 @@ impl Scaling {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CartesianPoint, Scaling};
+    use crate::cartesian::{CartesianPoint, Scaling};
 
     #[test]
     fn scaling_must_not_fail() {
@@ -73,12 +73,9 @@ mod tests {
                 .scale(test.input);
 
             assert_eq!(
-                rotated,
-                test.output,
+                rotated, test.output,
                 "{}: got rotated = {:?}, want ± e = {:?}",
-                test.name,
-                rotated,
-                test.output
+                test.name, rotated, test.output
             );
         });
     }

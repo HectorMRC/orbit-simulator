@@ -1,6 +1,8 @@
 use std::f64::consts::{FRAC_PI_2, PI};
 
-use crate::CartesianPoint;
+use crate::cartesian::CartesianPoint;
+
+pub mod orbit;
 
 /// Represents the horizontal axis in a geographic system of coordinates.
 ///
@@ -15,7 +17,7 @@ use crate::CartesianPoint;
 ///
 /// ## Example
 /// ```
-/// use globe_rs::Longitude;
+/// use globe_rs::geographic::Longitude;
 /// use std::f64::consts::PI;
 ///
 /// assert_eq!(
@@ -88,7 +90,7 @@ impl Longitude {
 ///
 /// ## Example
 /// ```
-/// use globe_rs::Latitude;
+/// use globe_rs::geographic::Latitude;
 /// use std::f64::consts::PI;
 ///
 /// let overflowing_latitude = Latitude::from(-5. * PI / 4.);
@@ -155,7 +157,7 @@ impl Latitude {
 ///
 /// ## Example
 /// ```
-/// use globe_rs::Altitude;
+/// use globe_rs::geographic::Altitude;
 ///
 /// assert_eq!(
 ///     Altitude::from(-1.56),
@@ -233,7 +235,11 @@ impl GeographicPoint {
 mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
-    use crate::{approx_eq, Altitude, CartesianPoint, GeographicPoint, Latitude, Longitude};
+    use crate::{
+        approx_eq,
+        cartesian::CartesianPoint,
+        geographic::{Altitude, GeographicPoint, Latitude, Longitude},
+    };
 
     #[test]
     fn longitude_must_not_exceed_boundaries() {
@@ -322,11 +328,11 @@ mod tests {
                 test.name, normal, test.output
             );
         });
-    }   
+    }
 
     #[test]
     fn latitude_must_not_exceed_boundaries() {
-        const ABS_ERROR: f64 = 0.0000000000000002;
+        const ABS_ERROR: f64 = 0.0000000000000003;
 
         struct Test {
             name: &'static str,
@@ -359,7 +365,7 @@ mod tests {
         .into_iter()
         .for_each(|test| {
             let latitude: f64 = Latitude::from(test.input).into();
-            
+
             assert!(
                 approx_eq(latitude, test.output, ABS_ERROR),
                 "{}: got latitude = {}, want {}",

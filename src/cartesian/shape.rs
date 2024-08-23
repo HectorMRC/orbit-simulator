@@ -1,6 +1,6 @@
-use crate::{Radiant, Rotation};
+use crate::Radiant;
 
-use super::{CartesianPoint, Scaling, Translation};
+use super::{CartesianPoint, Rotation, Scaling, Translation};
 
 /// A succession of [CartesianPoint]s representing an arbitrary shape.
 #[derive(Default)]

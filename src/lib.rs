@@ -1,20 +1,20 @@
-use std::ops::{Add, Sub};
+use std::ops::Sub;
 
-mod cartesian;
-pub use cartesian::*;
+use num_traits::Signed;
 
-mod geographic;
-pub use geographic::*;
+pub mod cartesian;
+
+pub mod geographic;
 
 mod radiant;
 pub use radiant::*;
 
-/// Returns true if, and only if, v2 is in the range of v1 ± e. Otherwise returns false.
+/// Returns true if, and only if, abs_error >= |v1 - v2|. Otherwise returns false.
 #[inline(always)]
 pub fn approx_eq<T, E>(v1: T, v2: T, abs_error: E) -> bool
 where
-    T: Copy + PartialOrd + Add<E, Output = T> + Sub<E, Output = T>,
-    E: Copy,
+    T: Sub<Output = T> + Signed,
+    E: PartialOrd<T>
 {
-    v1 + abs_error >= v2 && v1 - abs_error <= v2
+    abs_error >= (v1 - v2).abs()
 }
