@@ -15,15 +15,23 @@ use super::{CartesianPoint, Transform};
 /// ## Example
 /// ```
 /// use std::f64::consts::FRAC_PI_2;
-/// use globe_rs::{approx_eq, cartesian::{CartesianPoint, Rotation}};
 ///
-/// // due precision error both values may not be exactly the same  
+/// use globe_rs::{
+///     approx_eq,
+///     cartesian::{
+///         transform::{Rotation, Transform},
+///         CartesianPoint,
+///     },
+/// };
+///
+/// // due precision error both values may not be exactly the same
 /// const ABS_ERROR: f64 = 0.0000000000000001;
+///
 ///
 /// let rotated = Rotation::default()
 ///     .with_axis(CartesianPoint::from([1., 0., 0.]))
 ///     .with_theta(FRAC_PI_2.into())
-///     .rotate(CartesianPoint::from([0., 1., 0.]));
+///     .transform(CartesianPoint::from([0., 1., 0.]));
 ///
 /// rotated
 ///     .into_iter()
@@ -31,7 +39,7 @@ use super::{CartesianPoint, Transform};
 ///     .for_each(|(&got, &want)| {
 ///         assert!(
 ///             approx_eq(got, want, ABS_ERROR),
-///             "point at y1 should be rotated around the x axis to z1: {rotated:?}",
+///             "point at y1 should be rotated around the x axis to z1",
 ///         );
 ///     });
 /// ```
