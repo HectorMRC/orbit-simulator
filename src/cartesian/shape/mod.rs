@@ -11,6 +11,7 @@ pub struct Shape {
 
 /// A continious shape that can be sampled into a discrete [Shape].
 pub trait Sample {
-    /// Converts the continuous shape into a discrete set of [CartesianPoint]s by dividing it into segments.
+    /// Converts the continuous shape into a discrete set of [CartesianPoint]s by dividing it into
+    /// segments.
     fn sample(&self, segments: usize) -> Shape;
 }
