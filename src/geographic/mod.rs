@@ -1,6 +1,6 @@
 use std::f64::consts::{FRAC_PI_2, PI};
 
-use crate::cartesian::CartesianPoint;
+use crate::{cartesian::CartesianPoint, PositiveFloat};
 
 pub mod orbit;
 
@@ -165,17 +165,17 @@ impl Latitude {
 /// );
 /// ```
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Altitude(f64);
+pub struct Altitude(PositiveFloat);
 
 impl From<f64> for Altitude {
     fn from(value: f64) -> Self {
-        Self(value.abs())
+        Self(value.into())
     }
 }
 
 impl From<Altitude> for f64 {
     fn from(value: Altitude) -> Self {
-        value.0
+        value.0.into()
     }
 }
 

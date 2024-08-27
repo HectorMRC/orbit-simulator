@@ -6,8 +6,37 @@ pub mod cartesian;
 
 pub mod geographic;
 
+mod distance;
+pub use distance::*;
+
+mod frequency;
+pub use frequency::*;
+
+mod mass;
+pub use mass::*;
+
 mod radiant;
 pub use radiant::*;
+
+mod velocity;
+pub use velocity::*;
+
+
+/// A [f64] that is always positive.
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+struct PositiveFloat(f64);
+
+impl From<f64> for PositiveFloat {
+    fn from(value: f64) -> Self {
+        Self(value.abs())
+    }
+}
+
+impl From<PositiveFloat> for f64 {
+    fn from(value: PositiveFloat) -> Self {
+        value.0
+    }
+}
 
 /// Returns true if, and only if, abs_error >= |v1 - v2|. Otherwise returns false.
 #[inline(always)]

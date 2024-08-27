@@ -1,5 +1,7 @@
 use std::f64::consts::PI;
 
+use crate::Frequency;
+
 pub const TWO_PI: f64 = 2. * PI;
 
 /// The [radiant](https://en.wikipedia.org/wiki/Radian) unit, which is always a positive number
@@ -28,8 +30,16 @@ impl From<Radiant> for f64 {
     }
 }
 
+impl From<Frequency> for Radiant {
+    /// The radiants per seconds the frequency represents.
+    fn from(value: Frequency) -> Self {
+        (value.as_hz() * TWO_PI).into()
+    }
+}
+
 impl Radiant {
-    pub const MAX: Self = Self(TWO_PI);
+    pub const MAX: Self = Self(TWO_PI - f64::MIN_POSITIVE);
+    pub const MIN: Self = Self(0.);
 }
 
 #[cfg(test)]
@@ -53,15 +63,25 @@ mod tests {
                 output: PI,
             },
             Test {
+                name: "max radiant must not be changed to zero",
+                input: Radiant::MAX.into(),
+                output: Radiant::MAX.into(),
+            },
+            Test {
                 name: "negative radiant must change",
                 input: -FRAC_PI_2,
-                output: TWO_PI - FRAC_PI_2,
+                output: TWO_PI - FRAC_PI_2, 
             },
             Test {
                 name: "overflowing radiant must change",
                 input: TWO_PI + FRAC_PI_2,
                 output: FRAC_PI_2,
             },
+            // Test {
+            //     name: "two pi radiants must equal zero",
+            //     input: TWO_PI,
+            //     output: 0.,
+            // },
         ]
         .into_iter()
         .for_each(|test| {

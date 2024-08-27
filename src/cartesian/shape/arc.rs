@@ -2,8 +2,7 @@ use crate::{
     cartesian::{
         transform::{Rotation, Translation},
         CartesianPoint,
-    },
-    Radiant,
+    }, Distance, Radiant, TWO_PI
 };
 
 use super::{Sample, Shape};
@@ -25,10 +24,7 @@ impl Sample for Arc {
     fn sample(&self, segments: usize) -> super::Shape {
         let theta = (f64::from(self.theta) / segments as f64).into();
 
-        // ensures the center of the arc is at the origin.
         let translation = Translation::default().with_vector(-self.center);
-
-        // performs the rotation per se
         let rotation = Rotation::default().with_axis(self.axis).with_theta(theta);
 
         let mut points = Vec::with_capacity(segments + 1);
@@ -69,7 +65,23 @@ impl Arc {
     }
 
     /// Returns the length of the arc.
-    pub fn length(&self) -> f64 {
-        self.center.distance(&self.start) * f64::from(self.theta)
+    pub fn length(&self) -> Distance {
+        Distance::km(
+            self.center.distance(&self.start) * f64::from(self.theta)
+        )
+    }
+
+    /// Returns the perimeter of the arc's circumference.
+    pub fn perimeter(&self) -> Distance {
+        Distance::km(
+            self.center.distance(&self.start) * TWO_PI
+        )
+    }
+
+    /// Returns the radius of the arc.
+    pub fn radius(&self) -> Distance {
+        Distance::km(
+            self.center.distance(&self.start)
+        )
     }
 }
