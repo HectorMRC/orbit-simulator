@@ -2,10 +2,10 @@ use nalgebra::Matrix3;
 
 use crate::Radiant;
 
-use super::{CartesianPoint, Transform};
+use super::{Cartesian, Transform};
 
 /// Implements the [geometric transformation](https://en.wikipedia.org/wiki/Rotation_matrix)
-/// through which an arbitrary [CartesianPoint]s can be rotated given an axis and an angle of
+/// through which an arbitrary [Cartesian]s can be rotated given an axis and an angle of
 /// rotation.
 ///
 /// ## Statement
@@ -17,10 +17,9 @@ use super::{CartesianPoint, Transform};
 /// use std::f64::consts::FRAC_PI_2;
 ///
 /// use globe_rs::{
-///     approx_eq,
 ///     cartesian::{
 ///         transform::{Rotation, Transform},
-///         CartesianPoint,
+///         Cartesian,
 ///     },
 /// };
 ///
@@ -29,16 +28,16 @@ use super::{CartesianPoint, Transform};
 ///
 ///
 /// let rotated = Rotation::default()
-///     .with_axis(CartesianPoint::from([1., 0., 0.]))
+///     .with_axis(Cartesian::from([1., 0., 0.]))
 ///     .with_theta(FRAC_PI_2.into())
-///     .transform(CartesianPoint::from([0., 1., 0.]));
+///     .transform(Cartesian::from([0., 1., 0.]));
 ///
 /// rotated
 ///     .into_iter()
-///     .zip(CartesianPoint::from([0., 0., 1.]).into_iter())
+///     .zip(Cartesian::from([0., 0., 1.]).into_iter())
 ///     .for_each(|(&got, &want)| {
 ///         assert!(
-///             approx_eq(got, want, ABS_ERROR),
+///             (got - want).abs() <= ABS_ERROR,
 ///             "point at y1 should be rotated around the x axis to z1",
 ///         );
 ///     });
@@ -46,13 +45,13 @@ use super::{CartesianPoint, Transform};
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Rotation {
     /// The axis of rotation about which perform the transformation.
-    pub axis: CartesianPoint,
+    pub axis: Cartesian,
     /// The angle of rotation.
     pub theta: Radiant,
 }
 
 impl Transform for Rotation {
-    fn transform(&self, point: CartesianPoint) -> CartesianPoint {
+    fn transform(&self, point: Cartesian) -> Cartesian {
         let sin_theta = f64::from(self.theta).sin();
         let cos_theta = f64::from(self.theta).cos();
         let sub_1_cos_theta = 1. - cos_theta;
@@ -78,7 +77,7 @@ impl Transform for Rotation {
 }
 
 impl Rotation {
-    pub fn with_axis(mut self, axis: CartesianPoint) -> Self {
+    pub fn with_axis(mut self, axis: Cartesian) -> Self {
         self.axis = axis.unit();
         self
     }
@@ -94,10 +93,10 @@ mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
     use crate::{
-        approx_eq,
+        tests::approx_eq,
         cartesian::{
             transform::{Rotation, Transform},
-            CartesianPoint,
+            Cartesian,
         },
         Radiant,
     };
@@ -109,60 +108,60 @@ mod tests {
         struct Test {
             name: &'static str,
             theta: Radiant,
-            axis: CartesianPoint,
-            input: CartesianPoint,
-            output: CartesianPoint,
+            axis: Cartesian,
+            input: Cartesian,
+            output: Cartesian,
         }
 
         vec![
             Test {
                 name: "full rotation on the x axis must not change the y point",
                 theta: Radiant::from(2. * PI),
-                axis: CartesianPoint::from([1., 0., 0.]),
-                input: CartesianPoint::from([0., 1., 0.]),
-                output: CartesianPoint::from([0., 1., 0.]),
+                axis: Cartesian::from([1., 0., 0.]),
+                input: Cartesian::from([0., 1., 0.]),
+                output: Cartesian::from([0., 1., 0.]),
             },
             Test {
                 name: "half of a whole rotation on the x axis must change the y point",
                 theta: Radiant::from(PI),
-                axis: CartesianPoint::from([1., 0., 0.]),
-                input: CartesianPoint::from([0., 1., 0.]),
-                output: CartesianPoint::from([0., -1., 0.]),
+                axis: Cartesian::from([1., 0., 0.]),
+                input: Cartesian::from([0., 1., 0.]),
+                output: Cartesian::from([0., -1., 0.]),
             },
             Test {
                 name: "a quarter of a whole rotation on the x axis must change the y point",
                 theta: Radiant::from(FRAC_PI_2),
-                axis: CartesianPoint::from([1., 0., 0.]),
-                input: CartesianPoint::from([0., 1., 0.]),
-                output: CartesianPoint::from([0., 0., 1.]),
+                axis: Cartesian::from([1., 0., 0.]),
+                input: Cartesian::from([0., 1., 0.]),
+                output: Cartesian::from([0., 0., 1.]),
             },
             Test {
                 name: "full rotation on the z axis must not change the y point",
                 theta: Radiant::from(2. * PI),
-                axis: CartesianPoint::from([0., 0., 1.]),
-                input: CartesianPoint::from([0., 1., 0.]),
-                output: CartesianPoint::from([0., 1., 0.]),
+                axis: Cartesian::from([0., 0., 1.]),
+                input: Cartesian::from([0., 1., 0.]),
+                output: Cartesian::from([0., 1., 0.]),
             },
             Test {
                 name: "half of a whole rotation on the z axis must change the y point",
                 theta: Radiant::from(PI),
-                axis: CartesianPoint::from([0., 0., 1.]),
-                input: CartesianPoint::from([0., 1., 0.]),
-                output: CartesianPoint::from([0., -1., 0.]),
+                axis: Cartesian::from([0., 0., 1.]),
+                input: Cartesian::from([0., 1., 0.]),
+                output: Cartesian::from([0., -1., 0.]),
             },
             Test {
                 name: "a quarter of a whole rotation on the z axis must change the y point",
                 theta: Radiant::from(FRAC_PI_2),
-                axis: CartesianPoint::from([0., 0., 1.]),
-                input: CartesianPoint::from([0., 1., 0.]),
-                output: CartesianPoint::from([-1., 0., 0.]),
+                axis: Cartesian::from([0., 0., 1.]),
+                input: Cartesian::from([0., 1., 0.]),
+                output: Cartesian::from([-1., 0., 0.]),
             },
             Test {
                 name: "rotate over itself must not change the point",
                 theta: Radiant::from(FRAC_PI_2),
-                axis: CartesianPoint::from([0., 1., 0.]),
-                input: CartesianPoint::from([0., 1., 0.]),
-                output: CartesianPoint::from([0., 1., 0.]),
+                axis: Cartesian::from([0., 1., 0.]),
+                input: Cartesian::from([0., 1., 0.]),
+                output: Cartesian::from([0., 1., 0.]),
             },
         ]
         .into_iter()

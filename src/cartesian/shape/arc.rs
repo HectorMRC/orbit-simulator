@@ -1,7 +1,7 @@
 use crate::{
     cartesian::{
         transform::{Rotation, Translation},
-        CartesianPoint,
+        Cartesian,
     }, Distance, Radiant, TWO_PI
 };
 
@@ -11,11 +11,11 @@ use super::{Sample, Shape};
 #[derive(Default)]
 pub struct Arc {
     /// The center of the circumference of the arc.
-    pub center: CartesianPoint,
+    pub center: Cartesian,
     /// The starting point of the arc.
-    pub start: CartesianPoint,
+    pub start: Cartesian,
     /// The axis about which the arc is made.
-    pub axis: CartesianPoint,
+    pub axis: Cartesian,
     /// The angle of the arc.
     pub theta: Radiant,
 }
@@ -44,17 +44,17 @@ impl Sample for Arc {
 }
 
 impl Arc {
-    pub fn with_center(mut self, center: CartesianPoint) -> Self {
+    pub fn with_center(mut self, center: Cartesian) -> Self {
         self.center = center;
         self
     }
 
-    pub fn with_starting_point(mut self, start: CartesianPoint) -> Self {
+    pub fn with_starting_point(mut self, start: Cartesian) -> Self {
         self.start = start;
         self
     }
 
-    pub fn with_axisaxis(mut self, axis: CartesianPoint) -> Self {
+    pub fn with_axisaxis(mut self, axis: Cartesian) -> Self {
         self.axis = axis;
         self
     }

@@ -6,25 +6,25 @@ use std::{
 use nalgebra::{iter::MatrixIter, ArrayStorage, Const, Vector3};
 use transform::Transform;
 
-use crate::geographic::GeographicPoint;
+use crate::geographic::Geographic;
 
 pub mod shape;
 pub mod transform;
 
 /// An arbitrary point in space using the cartesian system of coordinates.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct CartesianPoint(Vector3<f64>);
+pub struct Cartesian(Vector3<f64>);
 
-impl<T> From<T> for CartesianPoint
+impl<T> From<T> for Cartesian
 where
     T: Into<Vector3<f64>>,
 {
     fn from(value: T) -> Self {
-        CartesianPoint(value.into())
+        Cartesian(value.into())
     }
 }
 
-impl<'a> IntoIterator for &'a CartesianPoint {
+impl<'a> IntoIterator for &'a Cartesian {
     type Item = &'a f64;
 
     type IntoIter = MatrixIter<'a, f64, Const<3>, Const<1>, ArrayStorage<f64, 3, 1>>;
@@ -34,16 +34,16 @@ impl<'a> IntoIterator for &'a CartesianPoint {
     }
 }
 
-impl Neg for CartesianPoint {
-    type Output = CartesianPoint;
+impl Neg for Cartesian {
+    type Output = Cartesian;
 
     fn neg(self) -> Self::Output {
         Self::from(-self.0)
     }
 }
 
-impl From<GeographicPoint> for CartesianPoint {
-    fn from(point: GeographicPoint) -> Self {
+impl From<Geographic> for Cartesian {
+    fn from(point: Geographic) -> Self {
         let radial_distance = match point.altitude.into() {
             altitude if altitude == 0. => 1.,
             altitude => altitude,
@@ -77,7 +77,7 @@ impl From<GeographicPoint> for CartesianPoint {
     }
 }
 
-impl CartesianPoint {
+impl Cartesian {
     pub fn with_x(mut self, x: f64) -> Self {
         self.0[0] = x;
         self
@@ -105,18 +105,18 @@ impl CartesianPoint {
         self.0[2]
     }
 
-    /// Returns the [CartesianPoint] representing the unitary vector of self.
+    /// Returns the [Cartesian] representing the unitary vector of self.
     pub fn unit(&self) -> Self {
         self.0.normalize().into()
     }
 
     /// Returns the distance between self and the given point.
-    pub fn distance(&self, rhs: &CartesianPoint) -> f64 {
+    pub fn distance(&self, rhs: &Cartesian) -> f64 {
         self.0.metric_distance(&rhs.0)
     }
 
     /// Performs the cartesian product between self and the given point.
-    pub fn cross(&self, other: &CartesianPoint) -> Self {
+    pub fn cross(&self, other: &Cartesian) -> Self {
         self.0.cross(&other.0).into()
     }
 
@@ -136,58 +136,58 @@ mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
     use crate::{
-        cartesian::CartesianPoint,
-        geographic::{GeographicPoint, Latitude, Longitude},
+        cartesian::Cartesian,
+        geographic::{Geographic, Latitude, Longitude},
     };
 
     #[test]
     fn cartesian_from_geographic_must_not_fail() {
         struct Test {
             name: &'static str,
-            input: GeographicPoint,
-            output: CartesianPoint,
+            input: Geographic,
+            output: Cartesian,
         }
 
         vec![
             Test {
                 name: "north point",
-                input: GeographicPoint::default().with_latitude(Latitude::from(FRAC_PI_2)),
-                output: CartesianPoint::from([0., 0., 1.]),
+                input: Geographic::default().with_latitude(Latitude::from(FRAC_PI_2)),
+                output: Cartesian::from([0., 0., 1.]),
             },
             Test {
                 name: "south point",
-                input: GeographicPoint::default().with_latitude(Latitude::from(-FRAC_PI_2)),
-                output: CartesianPoint::from([0., 0., -1.]),
+                input: Geographic::default().with_latitude(Latitude::from(-FRAC_PI_2)),
+                output: Cartesian::from([0., 0., -1.]),
             },
             Test {
                 name: "east point",
-                input: GeographicPoint::default().with_longitude(Longitude::from(FRAC_PI_2)),
-                output: CartesianPoint::from([0., 1., 0.]),
+                input: Geographic::default().with_longitude(Longitude::from(FRAC_PI_2)),
+                output: Cartesian::from([0., 1., 0.]),
             },
             Test {
                 name: "weast point",
-                input: GeographicPoint::default().with_longitude(Longitude::from(-FRAC_PI_2)),
-                output: CartesianPoint::from([0., -1., 0.]),
+                input: Geographic::default().with_longitude(Longitude::from(-FRAC_PI_2)),
+                output: Cartesian::from([0., -1., 0.]),
             },
             Test {
                 name: "front point",
-                input: GeographicPoint::default(),
-                output: CartesianPoint::from([1., 0., 0.]),
+                input: Geographic::default(),
+                output: Cartesian::from([1., 0., 0.]),
             },
             Test {
                 name: "back point as negative bound",
-                input: GeographicPoint::default().with_longitude(Longitude::from(-PI)),
-                output: CartesianPoint::from([-1., 0., 0.]),
+                input: Geographic::default().with_longitude(Longitude::from(-PI)),
+                output: Cartesian::from([-1., 0., 0.]),
             },
             Test {
                 name: "back point as positive bound",
-                input: GeographicPoint::default().with_longitude(Longitude::from(PI)),
-                output: CartesianPoint::from([-1., 0., 0.]),
+                input: Geographic::default().with_longitude(Longitude::from(PI)),
+                output: Cartesian::from([-1., 0., 0.]),
             },
         ]
         .into_iter()
         .for_each(|test| {
-            let from = CartesianPoint::from(test.input);
+            let from = Cartesian::from(test.input);
             let from = from;
             let point = from;
             assert_eq!(
@@ -202,25 +202,25 @@ mod tests {
     fn unit_must_not_fail() {
         struct Test {
             name: &'static str,
-            input: CartesianPoint,
-            output: CartesianPoint,
+            input: Cartesian,
+            output: Cartesian,
         }
 
         vec![
             Test {
                 name: "lenght of unit vector must be 1 at x axis",
-                input: CartesianPoint::from([2., 0., 0.]),
-                output: CartesianPoint::from([1., 0., 0.]),
+                input: Cartesian::from([2., 0., 0.]),
+                output: Cartesian::from([1., 0., 0.]),
             },
             Test {
                 name: "lenght of unit vector must be 1 at y axis",
-                input: CartesianPoint::from([0., 3., 0.]),
-                output: CartesianPoint::from([0., 1., 0.]),
+                input: Cartesian::from([0., 3., 0.]),
+                output: Cartesian::from([0., 1., 0.]),
             },
             Test {
                 name: "lenght of unit vector must be 1 at z axis",
-                input: CartesianPoint::from([0., 0., -4.]),
-                output: CartesianPoint::from([0., 0., -1.]),
+                input: Cartesian::from([0., 0., -4.]),
+                output: Cartesian::from([0., 0., -1.]),
             },
         ]
         .into_iter()

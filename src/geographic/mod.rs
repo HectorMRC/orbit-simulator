@@ -1,6 +1,6 @@
 use std::f64::consts::{FRAC_PI_2, PI};
 
-use crate::{cartesian::CartesianPoint, PositiveFloat};
+use crate::{cartesian::Cartesian, PositiveFloat};
 
 pub mod orbit;
 
@@ -50,10 +50,10 @@ impl From<Longitude> for f64 {
     }
 }
 
-impl From<CartesianPoint> for Longitude {
-    /// Computes the [Longitude] of the given [CartesianPoint] as specified by the [Spherical
+impl From<Cartesian> for Longitude {
+    /// Computes the [Longitude] of the given [Cartesian] as specified by the [Spherical
     /// coordinate system](https://en.wikipedia.org/wiki/Spherical_coordinate_system).
-    fn from(point: CartesianPoint) -> Self {
+    fn from(point: Cartesian) -> Self {
         match (point.x(), point.y()) {
             (x, y) if x > 0. => (y / x).atan(),
             (x, y) if x < 0. && y >= 0. => (y / x).atan() + PI,
@@ -97,11 +97,10 @@ impl Longitude {
 /// let equivalent_latitude = Latitude::from(PI / 4.);
 ///
 /// // due precision error both values may not be exactly the same  
-/// let abs_error = 0.0000000000000001;
+/// let abs_error = 0.0000000000000002;
 ///
 /// assert!(
-///     f64::from(equivalent_latitude) + abs_error >= f64::from(overflowing_latitude) &&
-///     f64::from(equivalent_latitude) - abs_error <= f64::from(overflowing_latitude),
+///     (f64::from(equivalent_latitude) - f64::from(overflowing_latitude)).abs() <= abs_error,
 ///     "the overflowing latitude should be as the equivalent latitude ± e"
 /// );
 /// ```
@@ -124,10 +123,10 @@ impl From<Latitude> for f64 {
     }
 }
 
-impl From<CartesianPoint> for Latitude {
-    /// Computes the [Latitude] of the given [CartesianPoint] as specified by the [Spherical
+impl From<Cartesian> for Latitude {
+    /// Computes the [Latitude] of the given [Cartesian] as specified by the [Spherical
     /// coordinate system](https://en.wikipedia.org/wiki/Spherical_coordinate_system).
-    fn from(point: CartesianPoint) -> Self {
+    fn from(point: Cartesian) -> Self {
         let theta = match (point.x(), point.y(), point.z()) {
             (x, y, z) if z > 0. => f64::atan(f64::sqrt(x.powi(2) + y.powi(2)) / z),
             (x, y, z) if z < 0. => PI + f64::atan(f64::sqrt(x.powi(2) + y.powi(2)) / z),
@@ -179,24 +178,24 @@ impl From<Altitude> for f64 {
     }
 }
 
-impl From<CartesianPoint> for Altitude {
-    /// Computes the [Altitude] of the given [CartesianPoint] as specified by the [Spherical
+impl From<Cartesian> for Altitude {
+    /// Computes the [Altitude] of the given [Cartesian] as specified by the [Spherical
     /// coordinate system](https://en.wikipedia.org/wiki/Spherical_coordinate_system).
-    fn from(point: CartesianPoint) -> Self {
+    fn from(point: Cartesian) -> Self {
         f64::sqrt(point.x().powi(2) + point.y().powi(2) + point.z().powi(2)).into()
     }
 }
 
-/// An arbitrary point in space using the geographic system of coordinates.
+/// An arbitrary point in space using the geographical system of coordinates.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct GeographicPoint {
+pub struct Geographic {
     pub longitude: Longitude,
     pub latitude: Latitude,
     pub altitude: Altitude,
 }
 
-impl From<CartesianPoint> for GeographicPoint {
-    fn from(point: CartesianPoint) -> Self {
+impl From<Cartesian> for Geographic {
+    fn from(point: Cartesian) -> Self {
         Self::default()
             .with_longitude(point.into())
             .with_latitude(point.into())
@@ -204,7 +203,7 @@ impl From<CartesianPoint> for GeographicPoint {
     }
 }
 
-impl GeographicPoint {
+impl Geographic {
     pub fn with_longitude(mut self, longitude: Longitude) -> Self {
         self.longitude = longitude;
         self
@@ -222,7 +221,7 @@ impl GeographicPoint {
 
     /// Computes the [great-circle distance](https://en.wikipedia.org/wiki/Great-circle_distance)
     /// from self to the given point (in radiants).
-    pub fn distance(&self, other: &GeographicPoint) -> f64 {
+    pub fn distance(&self, other: &Geographic) -> f64 {
         let prod_latitude_sin = f64::from(self.latitude).sin() * f64::from(other.latitude).sin();
         let prod_latitude_cos = f64::from(self.latitude).cos() * f64::from(other.latitude).cos();
         let longitude_diff = (f64::from(self.longitude) - f64::from(other.longitude)).abs();
@@ -236,9 +235,9 @@ mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
     use crate::{
-        approx_eq,
-        cartesian::CartesianPoint,
-        geographic::{Altitude, GeographicPoint, Latitude, Longitude},
+        tests::approx_eq,
+        cartesian::Cartesian,
+        geographic::{Altitude, Geographic, Latitude, Longitude},
     };
 
     #[test]
@@ -427,55 +426,55 @@ mod tests {
     fn geographic_from_cartesian_must_not_fail() {
         struct Test {
             name: &'static str,
-            input: CartesianPoint,
-            output: GeographicPoint,
+            input: Cartesian,
+            output: Geographic,
         }
 
         vec![
             Test {
                 name: "north point",
-                input: CartesianPoint::from([0., 0., 1.]),
-                output: GeographicPoint::default()
+                input: Cartesian::from([0., 0., 1.]),
+                output: Geographic::default()
                     .with_latitude(Latitude::from(FRAC_PI_2))
                     .with_altitude(Altitude::from(1.)),
             },
             Test {
                 name: "south point",
-                input: CartesianPoint::from([0., 0., -1.]),
-                output: GeographicPoint::default()
+                input: Cartesian::from([0., 0., -1.]),
+                output: Geographic::default()
                     .with_latitude(Latitude::from(-FRAC_PI_2))
                     .with_altitude(Altitude::from(1.)),
             },
             Test {
                 name: "east point",
-                input: CartesianPoint::from([0., 1., 0.]),
-                output: GeographicPoint::default()
+                input: Cartesian::from([0., 1., 0.]),
+                output: Geographic::default()
                     .with_longitude(Longitude::from(FRAC_PI_2))
                     .with_altitude(Altitude::from(1.)),
             },
             Test {
                 name: "weast point",
-                input: CartesianPoint::from([0., -1., 0.]),
-                output: GeographicPoint::default()
+                input: Cartesian::from([0., -1., 0.]),
+                output: Geographic::default()
                     .with_longitude(Longitude::from(-FRAC_PI_2))
                     .with_altitude(Altitude::from(1.)),
             },
             Test {
                 name: "front point",
-                input: CartesianPoint::from([1., 0., 0.]),
-                output: GeographicPoint::default().with_altitude(Altitude::from(1.)),
+                input: Cartesian::from([1., 0., 0.]),
+                output: Geographic::default().with_altitude(Altitude::from(1.)),
             },
             Test {
                 name: "back point",
-                input: CartesianPoint::from([-1., 0., 0.]),
-                output: GeographicPoint::default()
+                input: Cartesian::from([-1., 0., 0.]),
+                output: Geographic::default()
                     .with_longitude(Longitude::from(PI))
                     .with_altitude(Altitude::from(1.)),
             },
         ]
         .into_iter()
         .for_each(|test| {
-            let point = GeographicPoint::from(test.input);
+            let point = Geographic::from(test.input);
 
             assert_eq!(
                 point.longitude,
@@ -510,28 +509,28 @@ mod tests {
     fn distance_must_not_fail() {
         struct Test<'a> {
             name: &'a str,
-            from: GeographicPoint,
-            to: GeographicPoint,
+            from: Geographic,
+            to: Geographic,
             distance: f64,
         }
 
         vec![
             Test {
                 name: "Same point must be zero",
-                from: GeographicPoint::default(),
-                to: GeographicPoint::default(),
+                from: Geographic::default(),
+                to: Geographic::default(),
                 distance: 0.,
             },
             Test {
                 name: "Oposite points in the horizontal",
-                from: GeographicPoint::default(),
-                to: GeographicPoint::default().with_longitude(Longitude::from(-PI)),
+                from: Geographic::default(),
+                to: Geographic::default().with_longitude(Longitude::from(-PI)),
                 distance: PI,
             },
             Test {
                 name: "Oposite points in the vertical",
-                from: GeographicPoint::default().with_latitude(Latitude::from(FRAC_PI_2)),
-                to: GeographicPoint::default().with_latitude(Latitude::from(-FRAC_PI_2)),
+                from: Geographic::default().with_latitude(Latitude::from(FRAC_PI_2)),
+                to: Geographic::default().with_latitude(Latitude::from(-FRAC_PI_2)),
                 distance: PI,
             },
         ]

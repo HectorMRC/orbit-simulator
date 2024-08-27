@@ -2,13 +2,13 @@ use std::ops::Neg;
 
 use nalgebra::{Matrix4, Vector4};
 
-use super::{CartesianPoint, Transform};
+use super::{Cartesian, Transform};
 
 /// Implements the [geometric transformation](https://en.wikipedia.org/wiki/Translation_(geometry))
-/// through which an arbitrary [CartesianPoint]s can be translated given a translation vector.
+/// through which an arbitrary [Cartesian]s can be translated given a translation vector.
 #[derive(Default, Clone, Copy)]
 pub struct Translation {
-    pub vector: CartesianPoint,
+    pub vector: Cartesian,
 }
 
 impl Neg for Translation {
@@ -22,7 +22,7 @@ impl Neg for Translation {
 }
 
 impl Transform for Translation {
-    fn transform(&self, point: CartesianPoint) -> CartesianPoint {
+    fn transform(&self, point: Cartesian) -> Cartesian {
         let translation = Matrix4::new(
             1.,
             0.,
@@ -48,7 +48,7 @@ impl Transform for Translation {
 }
 
 impl Translation {
-    pub fn with_vector(mut self, vector: CartesianPoint) -> Self {
+    pub fn with_vector(mut self, vector: Cartesian) -> Self {
         self.vector = vector;
         self
     }
@@ -58,30 +58,30 @@ impl Translation {
 mod tests {
     use crate::cartesian::{
         transform::{Transform, Translation},
-        CartesianPoint,
+        Cartesian,
     };
 
     #[test]
     fn translation_must_not_fail() {
         struct Test {
             name: &'static str,
-            vector: CartesianPoint,
-            input: CartesianPoint,
-            output: CartesianPoint,
+            vector: Cartesian,
+            input: Cartesian,
+            output: Cartesian,
         }
 
         vec![
             Test {
                 name: "the negative of the input should move the point to the origin",
-                vector: CartesianPoint::from([-1., -2., -3.]),
-                input: CartesianPoint::from([1., 2., 3.]),
-                output: CartesianPoint::from([0., 0., 0.]),
+                vector: Cartesian::from([-1., -2., -3.]),
+                input: Cartesian::from([1., 2., 3.]),
+                output: Cartesian::from([0., 0., 0.]),
             },
             Test {
                 name: "translation should be the sum of both vectors",
-                vector: CartesianPoint::from([1., 2., 3.]),
-                input: CartesianPoint::from([8., 7., 6.]),
-                output: CartesianPoint::from([9., 9., 9.]),
+                vector: Cartesian::from([1., 2., 3.]),
+                input: Cartesian::from([8., 7., 6.]),
+                output: Cartesian::from([9., 9., 9.]),
             },
         ]
         .into_iter()

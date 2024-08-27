@@ -1,17 +1,17 @@
-use super::CartesianPoint;
+use super::Cartesian;
 
 mod arc;
 pub use arc::*;
 
-/// A succession of [CartesianPoint]s representing an arbitrary shape.
+/// A succession of [Cartesian]s representing an arbitrary shape.
 #[derive(Default)]
 pub struct Shape {
-    pub points: Vec<CartesianPoint>,
+    pub points: Vec<Cartesian>,
 }
 
 /// A continious shape that can be sampled into a discrete [Shape].
 pub trait Sample {
-    /// Converts the continuous shape into a discrete set of [CartesianPoint]s by dividing it into
+    /// Converts the continuous shape into a discrete set of [Cartesian]s by dividing it into
     /// segments.
     fn sample(&self, segments: usize) -> Shape;
 }
