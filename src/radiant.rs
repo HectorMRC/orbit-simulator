@@ -38,8 +38,10 @@ impl From<Frequency> for Radiant {
 }
 
 impl Radiant {
-    pub const MAX: Self = Self(TWO_PI - f64::MIN_POSITIVE);
-    pub const MIN: Self = Self(0.);
+    /// Returns true if, and only if, self is exactly 2π, which implies a rotation of 360 degrees.
+    pub fn is_full(&self) -> bool {
+        self.0 == TWO_PI
+    }
 }
 
 #[cfg(test)]
@@ -63,14 +65,14 @@ mod tests {
                 output: PI,
             },
             Test {
-                name: "max radiant must not be changed to zero",
-                input: Radiant::MAX.into(),
-                output: Radiant::MAX.into(),
+                name: "2π radiants must not be changed to zero",
+                input: TWO_PI,
+                output: TWO_PI,
             },
             Test {
                 name: "negative radiant must change",
                 input: -FRAC_PI_2,
-                output: TWO_PI - FRAC_PI_2, 
+                output: TWO_PI - FRAC_PI_2,
             },
             Test {
                 name: "overflowing radiant must change",
@@ -78,7 +80,7 @@ mod tests {
                 output: FRAC_PI_2,
             },
             // Test {
-            //     name: "two pi radiants must equal zero",
+            //     name: "2π radiants must equal zero",
             //     input: TWO_PI,
             //     output: 0.,
             // },

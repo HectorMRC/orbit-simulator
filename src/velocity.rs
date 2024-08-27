@@ -1,6 +1,7 @@
 use crate::PositiveFloat;
 
-/// The velocity at which an aritrary object moves throught space, which is always a positive number.
+/// The velocity at which an aritrary object moves throught space, which is always a positive
+/// number.
 pub struct Velocity(PositiveFloat);
 
 impl Velocity {

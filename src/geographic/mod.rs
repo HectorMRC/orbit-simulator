@@ -235,9 +235,9 @@ mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
     use crate::{
-        tests::approx_eq,
         cartesian::Cartesian,
         geographic::{Altitude, Geographic, Latitude, Longitude},
+        tests::approx_eq,
     };
 
     #[test]

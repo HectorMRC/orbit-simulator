@@ -93,11 +93,11 @@ mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
     use crate::{
-        tests::approx_eq,
         cartesian::{
             transform::{Rotation, Transform},
             Cartesian,
         },
+        tests::approx_eq,
         Radiant,
     };
 

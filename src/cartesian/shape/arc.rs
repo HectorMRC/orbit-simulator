@@ -2,7 +2,8 @@ use crate::{
     cartesian::{
         transform::{Rotation, Translation},
         Cartesian,
-    }, Distance, Radiant, TWO_PI
+    },
+    Distance, Radiant, TWO_PI,
 };
 
 use super::{Sample, Shape};
@@ -66,22 +67,16 @@ impl Arc {
 
     /// Returns the length of the arc.
     pub fn length(&self) -> Distance {
-        Distance::km(
-            self.center.distance(&self.start) * f64::from(self.theta)
-        )
+        Distance::km(self.center.distance(&self.start) * f64::from(self.theta))
     }
 
     /// Returns the perimeter of the arc's circumference.
     pub fn perimeter(&self) -> Distance {
-        Distance::km(
-            self.center.distance(&self.start) * TWO_PI
-        )
+        Distance::km(self.center.distance(&self.start) * TWO_PI)
     }
 
     /// Returns the radius of the arc.
     pub fn radius(&self) -> Distance {
-        Distance::km(
-            self.center.distance(&self.start)
-        )
+        Distance::km(self.center.distance(&self.start))
     }
 }
