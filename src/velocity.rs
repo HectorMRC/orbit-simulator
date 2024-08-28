@@ -2,10 +2,11 @@ use crate::PositiveFloat;
 
 /// The velocity at which an aritrary object moves throught space, which is always a positive
 /// number.
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Velocity(PositiveFloat);
 
 impl Velocity {
-    /// Returns a new mass of v meters per second.
+    /// Returns a new velocity of v meters per second.
     pub fn meters_sec(v: f64) -> Self {
         Self(v.into())
     }

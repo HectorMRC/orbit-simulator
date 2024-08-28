@@ -1,6 +1,7 @@
 use crate::PositiveFloat;
 
 /// The distance between two points in space, which is always a positive number.
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Distance(PositiveFloat);
 
 impl Distance {

@@ -1,6 +1,7 @@
 use crate::PositiveFloat;
 
 /// The mass of an arbitrary object, which is always a positive number.
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Mass(PositiveFloat);
 
 impl Mass {

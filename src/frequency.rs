@@ -1,6 +1,7 @@
 use crate::PositiveFloat;
 
 /// The frequency at which an specific event occurs per unit of time.
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Frequency(PositiveFloat);
 
 impl Frequency {
