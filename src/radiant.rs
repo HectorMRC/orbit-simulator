@@ -65,7 +65,7 @@ mod tests {
                 output: PI,
             },
             Test {
-                name: "2π radiants must not be changed to zero",
+                name: "2π radiants must not equals zero",
                 input: TWO_PI,
                 output: TWO_PI,
             },
@@ -79,11 +79,6 @@ mod tests {
                 input: TWO_PI + FRAC_PI_2,
                 output: FRAC_PI_2,
             },
-            // Test {
-            //     name: "2π radiants must equal zero",
-            //     input: TWO_PI,
-            //     output: 0.,
-            // },
         ]
         .into_iter()
         .for_each(|test| {
