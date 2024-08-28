@@ -11,7 +11,7 @@ impl Velocity {
         Self(v.into())
     }
 
-    /// Returns an [f64] representing the velocity in meters per second.
+    /// Returns a [f64] representing the velocity in meters per second.
     pub fn as_meters_sec(&self) -> f64 {
         self.0.into()
     }

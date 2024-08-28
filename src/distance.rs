@@ -10,12 +10,12 @@ impl Distance {
         Self((km).into())
     }
 
-    /// Returns an [f64] representing the distance in meters.
+    /// Returns a [f64] representing the distance in meters.
     pub fn as_meters(&self) -> f64 {
         f64::from(self.0) * 1000.
     }
 
-    /// Returns an [f64] representing the distance in kilometers.
+    /// Returns a [f64] representing the distance in kilometers.
     pub fn as_km(&self) -> f64 {
         self.0.into()
     }

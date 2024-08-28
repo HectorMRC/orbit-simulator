@@ -10,7 +10,7 @@ impl Mass {
         Self((kg).into())
     }
 
-    /// Returns an [f64] representing the mass in kilograms.
+    /// Returns a [f64] representing the mass in kilograms.
     pub fn as_kg(&self) -> f64 {
         self.0.into()
     }
