@@ -42,6 +42,11 @@ impl Radiant {
     pub fn is_full(&self) -> bool {
         self.0 == TWO_PI
     }
+
+    /// Returns the amount of radiants as a [f64].
+    pub fn as_f64(&self) -> f64 {
+        self.0
+    }
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use std::ops::Neg;
+use std::ops::{Add, AddAssign, Neg};
 
 use nalgebra::{Matrix4, Vector4};
 
@@ -18,6 +18,21 @@ impl Neg for Translation {
         Self {
             vector: -self.vector,
         }
+    }
+}
+
+impl Add for Translation {
+    type Output = Translation;
+
+    fn add(mut self, rhs: Self) -> Self::Output {
+        self += rhs;
+        self
+    }
+}
+
+impl AddAssign for Translation {
+    fn add_assign(&mut self, rhs: Self) {
+        self.vector += rhs.vector;
     }
 }
 

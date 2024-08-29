@@ -1,6 +1,6 @@
 use std::{
     f64::consts::{FRAC_PI_2, PI},
-    ops::Neg,
+    ops::{Add, AddAssign, Neg},
 };
 
 use nalgebra::{iter::MatrixIter, ArrayStorage, Const, Vector3};
@@ -39,6 +39,21 @@ impl Neg for Cartesian {
 
     fn neg(self) -> Self::Output {
         Self::from(-self.0)
+    }
+}
+
+impl Add for Cartesian {
+    type Output = Cartesian;
+
+    fn add(mut self, rhs: Self) -> Self::Output {
+        self += rhs;
+        self
+    }
+}
+
+impl AddAssign for Cartesian {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
     }
 }
 

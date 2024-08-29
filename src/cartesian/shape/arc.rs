@@ -50,12 +50,12 @@ impl Arc {
         self
     }
 
-    pub fn with_starting_point(mut self, start: Cartesian) -> Self {
+    pub fn with_start(mut self, start: Cartesian) -> Self {
         self.start = start;
         self
     }
 
-    pub fn with_axisaxis(mut self, axis: Cartesian) -> Self {
+    pub fn with_axis(mut self, axis: Cartesian) -> Self {
         self.axis = axis;
         self
     }
@@ -78,5 +78,17 @@ impl Arc {
     /// Returns the radius of the arc.
     pub fn radius(&self) -> Distance {
         Distance::km(self.center.distance(&self.start))
+    }
+
+    /// Returns the latest [Cartesian] of the shape.
+    pub fn end(&self) -> Cartesian {
+        let translation = Translation::default().with_vector(-self.center);
+        let rotation = Rotation::default()
+            .with_axis(self.axis)
+            .with_theta(self.theta);
+        self.start
+            .transform(translation)
+            .transform(rotation)
+            .transform(-translation)
     }
 }
