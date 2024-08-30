@@ -1,4 +1,4 @@
-use super::Cartesian;
+use super::Coords;
 
 mod arc;
 pub use arc::*;
@@ -6,7 +6,7 @@ pub use arc::*;
 /// A succession of [Cartesian]s representing an arbitrary shape.
 #[derive(Default)]
 pub struct Shape {
-    pub points: Vec<Cartesian>,
+    pub points: Vec<Coords>,
 }
 
 /// A continious shape that can be sampled into a discrete [Shape].

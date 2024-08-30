@@ -2,13 +2,13 @@ use std::ops::{Add, AddAssign, Neg};
 
 use nalgebra::{Matrix4, Vector4};
 
-use super::{Cartesian, Transform};
+use super::{Coords, Transform};
 
 /// Implements the [geometric transformation](https://en.wikipedia.org/wiki/Translation_(geometry))
 /// through which an arbitrary [Cartesian]s can be translated given a translation vector.
 #[derive(Default, Clone, Copy)]
 pub struct Translation {
-    pub vector: Cartesian,
+    pub vector: Coords,
 }
 
 impl Neg for Translation {
@@ -37,7 +37,7 @@ impl AddAssign for Translation {
 }
 
 impl Transform for Translation {
-    fn transform(&self, point: Cartesian) -> Cartesian {
+    fn transform(&self, point: Coords) -> Coords {
         let translation = Matrix4::new(
             1.,
             0.,
@@ -63,7 +63,7 @@ impl Transform for Translation {
 }
 
 impl Translation {
-    pub fn with_vector(mut self, vector: Cartesian) -> Self {
+    pub fn with_vector(mut self, vector: Coords) -> Self {
         self.vector = vector;
         self
     }
@@ -73,30 +73,30 @@ impl Translation {
 mod tests {
     use crate::cartesian::{
         transform::{Transform, Translation},
-        Cartesian,
+        Coords,
     };
 
     #[test]
     fn translation_must_not_fail() {
         struct Test {
             name: &'static str,
-            vector: Cartesian,
-            input: Cartesian,
-            output: Cartesian,
+            vector: Coords,
+            input: Coords,
+            output: Coords,
         }
 
         vec![
             Test {
                 name: "the negative of the input should move the point to the origin",
-                vector: Cartesian::from([-1., -2., -3.]),
-                input: Cartesian::from([1., 2., 3.]),
-                output: Cartesian::from([0., 0., 0.]),
+                vector: Coords::from([-1., -2., -3.]),
+                input: Coords::from([1., 2., 3.]),
+                output: Coords::from([0., 0., 0.]),
             },
             Test {
                 name: "translation should be the sum of both vectors",
-                vector: Cartesian::from([1., 2., 3.]),
-                input: Cartesian::from([8., 7., 6.]),
-                output: Cartesian::from([9., 9., 9.]),
+                vector: Coords::from([1., 2., 3.]),
+                input: Coords::from([8., 7., 6.]),
+                output: Coords::from([9., 9., 9.]),
             },
         ]
         .into_iter()

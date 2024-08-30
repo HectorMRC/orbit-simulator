@@ -1,9 +1,8 @@
 use crate::{
     cartesian::{
         transform::{Rotation, Translation},
-        Cartesian,
-    },
-    Distance, Radiant, TWO_PI,
+        Coords,
+    }, orbit::{Orbit, G}, system::Body, Distance, Frequency, Radiant, Velocity, TWO_PI
 };
 
 use super::{Sample, Shape};
@@ -12,11 +11,11 @@ use super::{Sample, Shape};
 #[derive(Default)]
 pub struct Arc {
     /// The center of the circumference of the arc.
-    pub center: Cartesian,
+    pub center: Coords,
     /// The starting point of the arc.
-    pub start: Cartesian,
+    pub start: Coords,
     /// The axis about which the arc is made.
-    pub axis: Cartesian,
+    pub axis: Coords,
     /// The angle of the arc.
     pub theta: Radiant,
 }
@@ -44,18 +43,29 @@ impl Sample for Arc {
     }
 }
 
+/// An orbit in which the orbiting body moves in a perfect circle around the central body.
+impl Orbit for Arc {
+    fn velocity(&self, central_body: Body) -> Velocity {
+        Velocity::meters_sec((G * central_body.mass.as_kg() / self.radius().as_meters()).sqrt())
+    }
+
+    fn frequency(&self, central_body: Body) -> Frequency {
+        Frequency::hz(self.velocity(central_body).as_meters_sec() / self.perimeter().as_meters())
+    }
+}
+
 impl Arc {
-    pub fn with_center(mut self, center: Cartesian) -> Self {
+    pub fn with_center(mut self, center: Coords) -> Self {
         self.center = center;
         self
     }
 
-    pub fn with_start(mut self, start: Cartesian) -> Self {
+    pub fn with_start(mut self, start: Coords) -> Self {
         self.start = start;
         self
     }
 
-    pub fn with_axis(mut self, axis: Cartesian) -> Self {
+    pub fn with_axis(mut self, axis: Coords) -> Self {
         self.axis = axis;
         self
     }
@@ -81,7 +91,7 @@ impl Arc {
     }
 
     /// Returns the latest [Cartesian] of the shape.
-    pub fn end(&self) -> Cartesian {
+    pub fn end(&self) -> Coords {
         let translation = Translation::default().with_vector(-self.center);
         let rotation = Rotation::default()
             .with_axis(self.axis)

@@ -1,33 +1,9 @@
-use std::time::Duration;
+use std::{collections::VecDeque, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    cartesian::{shape::Arc, Cartesian},
-    Distance, Frequency, Mass, Radiant, Velocity,
-};
+use crate::{cartesian::{shape::Arc, Coords}, orbit::Orbit, Distance, Frequency, Mass, Radiant};
 
-/// The gravitational constant as N⋅m^2⋅kg^−2.
-pub const G: f64 = 6.67430e-11;
-
-/// The orbit of an object around a central body.
-pub trait Orbit {
-    /// The orbital velocity of the object.
-    fn velocity(&self, central_body: Body) -> Velocity;
-    /// The orbit's frequency.
-    fn frequency(&self, central_body: Body) -> Frequency;
-}
-
-/// An orbit in which the orbiting body moves in a perfect circle around the central body.
-impl Orbit for Arc {
-    fn velocity(&self, central_body: Body) -> Velocity {
-        Velocity::meters_sec((G * central_body.mass.as_kg() / self.radius().as_meters()).sqrt())
-    }
-
-    fn frequency(&self, central_body: Body) -> Frequency {
-        Frequency::hz(self.velocity(central_body).as_meters_sec() / self.perimeter().as_meters())
-    }
-}
 
 /// An arbitrary spherical body.
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
@@ -52,10 +28,41 @@ pub struct System {
     pub secondary: Vec<System>,
 }
 
+impl<'a> IntoIterator for &'a System {
+    type Item = &'a System;
+    type IntoIter = SystemIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SystemIter {
+            next: Some(self), 
+            ..Default::default()
+        }
+    }
+}
+
 impl System {
     /// Returns the state of the system in a given moment in time.
     pub fn state_at(&self, time: Duration) -> SystemState {
         SystemState::at(time, self, None)
+    }
+}
+
+/// Iterates over all the systems conforming the given system. 
+#[derive(Debug, Default)]
+pub struct SystemIter<'a> {
+    next: Option<&'a System>,
+    pending: VecDeque<&'a System>
+}
+
+impl<'a> Iterator for SystemIter<'a> {
+    type Item = &'a System;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.next.take()?;
+        self.pending.extend(next.secondary.iter());
+        self.next = self.pending.pop_front();
+
+        Some(next)
     }
 }
 
@@ -65,7 +72,7 @@ struct BodyPosition {
     /// The body itself.
     body: Body,
     /// The location of the body.
-    position: Cartesian,
+    position: Coords,
 }
 
 /// The configuration of a [System] in a specific moment in time.
@@ -74,9 +81,21 @@ pub struct SystemState {
     /// How much rotated is the primary body.
     pub rotation: Radiant,
     /// Where is located the center of the primary body.
-    pub position: Cartesian,
+    pub position: Coords,
     /// The state of the secondary bodies.
     pub secondary: Vec<SystemState>,
+}
+
+impl<'a> IntoIterator for &'a SystemState {
+    type Item = &'a SystemState;
+    type IntoIter = SystemStateIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SystemStateIter {
+            next: Some(self), 
+            ..Default::default()
+        }
+    }
 }
 
 impl SystemState {
@@ -84,7 +103,7 @@ impl SystemState {
         (Radiant::from(body.rotation).as_f64() * time.as_secs() as f64).into()
     }
 
-    fn position_at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Cartesian {
+    fn position_at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Coords {
         let Some(parent) = parent else {
             return Default::default();
         };
@@ -122,6 +141,26 @@ impl SystemState {
         state
     }
 }
+
+/// Iterates over all the system states conforming the given state.
+#[derive(Debug, Default)]
+pub struct SystemStateIter<'a> {
+    next: Option<&'a SystemState>,
+    pending: VecDeque<&'a SystemState>
+}
+
+impl<'a> Iterator for SystemStateIter<'a> {
+    type Item = &'a SystemState;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.next.take()?;
+        self.pending.extend(next.secondary.iter());
+        self.next = self.pending.pop_front();
+
+        Some(next)
+    }
+}
+
 
 /// Iterates over time yielding the corresponding state for a given [System].  
 pub struct SystemStateGenerator<'a> {

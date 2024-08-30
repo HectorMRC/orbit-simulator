@@ -1,4 +1,4 @@
-use super::Cartesian;
+use super::Coords;
 
 mod rotation;
 pub use rotation::*;
@@ -12,5 +12,5 @@ pub use translation::*;
 /// A geometric transformation.
 pub trait Transform {
     /// Performs the geometric transformation over the given point.
-    fn transform(&self, point: Cartesian) -> Cartesian;
+    fn transform(&self, point: Coords) -> Coords;
 }
