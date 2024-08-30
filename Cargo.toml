@@ -1,7 +1,8 @@
 [workspace]
-members = ["globe-app", "globe-rs"]
+members = ["globe-render", "globe-rs"]
 resolver = "2"
 
 [workspace.dependencies]
 globe-rs.path = "globe-rs"
+globe-render.path = "globe-render"
 serde = "1.0.209"

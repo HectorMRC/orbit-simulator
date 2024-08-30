@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use globe_app::GlobePlugin;
+use globe_render::GlobePlugin;
 
 fn main() {
     App::new()
