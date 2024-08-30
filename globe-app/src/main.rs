@@ -1,6 +1,9 @@
 use bevy::prelude::*;
+use globe_app::GlobePlugin;
 
 fn main() {
-    App::new().run();
-    ~/.config/nvim/lua/foo.lua:4:5
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_plugins(GlobePlugin)
+        .run();
 }

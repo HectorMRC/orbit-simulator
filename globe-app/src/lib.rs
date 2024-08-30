@@ -1,14 +1,13 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use bevy::prelude::*;
+
+pub struct GlobePlugin;
+
+impl Plugin for GlobePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, Self::spawn_bodies);
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+impl GlobePlugin {
+    fn spawn_bodies(mut commands: Commands) {}
 }
