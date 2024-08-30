@@ -1,5 +1,6 @@
 [workspace]
-members  = [
-    "globe-rs",
-]
+members = ["globe-app", "globe-rs"]
 resolver = "2"
+
+[workspace.dependencies]
+globe-rs.path = "globe-rs"

@@ -1,0 +1,15 @@
+[package]
+name = "globe-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.14"
+globe-rs.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "globe-app"
+path = "src/main.rs"
