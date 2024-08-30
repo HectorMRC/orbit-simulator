@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     cartesian::{shape::Arc, Cartesian},
     Distance, Frequency, Mass, Radiant, Velocity,
@@ -28,7 +30,7 @@ impl Orbit for Arc {
 }
 
 /// An arbitrary spherical body.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct Body {
     /// The radius of the body.
     pub radius: Distance,
@@ -39,7 +41,7 @@ pub struct Body {
 }
 
 /// An orbital system.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct System {
     /// The central body of the system.
     pub primary: Body,
@@ -48,6 +50,13 @@ pub struct System {
     pub distance: Distance,
     /// The systems orbiting the primary body.
     pub secondary: Vec<System>,
+}
+
+impl System {
+    /// Returns the state of the system in a given moment in time.
+    pub fn state_at(&self, time: Duration) -> SystemState {
+        SystemState::at(time, self, None)
+    }
 }
 
 /// An union of the [Body] type and its [Cartesian] position.
@@ -71,21 +80,6 @@ pub struct SystemState {
 }
 
 impl SystemState {
-    pub fn with_rotation(mut self, rotation: Radiant) -> Self {
-        self.rotation = rotation;
-        self
-    }
-
-    pub fn with_position(mut self, position: Cartesian) -> Self {
-        self.position = position;
-        self
-    }
-
-    pub fn with_secondary(mut self, secondary: Vec<SystemState>) -> Self {
-        self.secondary = secondary;
-        self
-    }
-
     fn rotation_at(time: Duration, body: Body) -> Radiant {
         (Radiant::from(body.rotation).as_f64() * time.as_secs() as f64).into()
     }
@@ -109,26 +103,27 @@ impl SystemState {
         orbit.with_theta(theta).end()
     }
 
-    fn state_at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Self {
-        let state = SystemState::default()
-            .with_rotation(Self::rotation_at(time, system.primary))
-            .with_position(Self::position_at(time, system, parent));
+    fn at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Self {
+        let mut state = SystemState::default();
+        state.rotation = Self::rotation_at(time, system.primary);
+        state.position = Self::position_at(time, system, parent);
 
         let parent = BodyPosition {
             body: system.primary,
             position: state.position,
         };
 
-        state.with_secondary(
-            system
-                .secondary
-                .iter()
-                .map(|system| SystemState::state_at(time, system, Some(parent)))
-                .collect(),
-        )
+        state.secondary = system
+            .secondary
+            .iter()
+            .map(|system| Self::at(time, system, Some(parent)))
+            .collect();
+
+        state
     }
 }
 
+/// Iterates over time yielding the corresponding state for a given [System].  
 pub struct SystemStateGenerator<'a> {
     /// The system being iterated.
     pub system: &'a System,
@@ -152,7 +147,7 @@ impl<'a> Iterator for SystemStateGenerator<'a> {
     type Item = SystemState;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let state = SystemState::state_at(self.time, self.system, None);
+        let state = self.system.state_at(self.time);
         self.time += self.step;
         Some(state)
     }

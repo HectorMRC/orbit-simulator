@@ -15,10 +15,11 @@ mod radiant;
 pub use radiant::*;
 
 mod velocity;
+use serde::{Deserialize, Serialize};
 pub use velocity::*;
 
 /// A [f64] that is always positive.
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 struct PositiveFloat(f64);
 
 impl From<f64> for PositiveFloat {

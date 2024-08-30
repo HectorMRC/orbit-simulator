@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use crate::PositiveFloat;
 
 /// The mass of an arbitrary object, which is always a positive number.
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Mass(PositiveFloat);
 
 impl Mass {

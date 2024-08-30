@@ -4,3 +4,4 @@ resolver = "2"
 
 [workspace.dependencies]
 globe-rs.path = "globe-rs"
+serde = "1.0.209"

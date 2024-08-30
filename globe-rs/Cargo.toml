@@ -10,6 +10,7 @@ repository = "https://github.com/HectorMRC/globe-rs"
 [dependencies]
 nalgebra = "0.33.0"
 num-traits = "0.2.19"
+serde.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]

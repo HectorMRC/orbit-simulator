@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use crate::PositiveFloat;
 
 /// The frequency at which an specific event occurs per unit of time.
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Frequency(PositiveFloat);
 
 impl Frequency {
