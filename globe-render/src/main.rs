@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
-use bevy::prelude::*;
-use globe_render::{Globe2DPlugin, Storage};
-use globe_rs::{Body, Distance, Frequency, Mass};
 use alvidir::name::Name;
+use bevy::prelude::*;
+use globe_render::{config, Globe2DPlugin};
+use globe_rs::{Body, Distance, Frequency, Mass};
 
 fn main() {
     App::new()
@@ -13,7 +13,7 @@ fn main() {
         .run();
 }
 
-fn load_storage() -> Storage {
+fn load_storage() -> config::Config {
     let system = globe_rs::System {
         primary: Body {
             name: Name::from_str("Sun").unwrap(),
@@ -29,7 +29,7 @@ fn load_storage() -> Storage {
                 rotation: Frequency::hz(1.1574074e-5),
                 mass: Mass::kg(5.97219e24),
             },
-            distance: Distance::km(151_032_912.),
+            distance: Distance::km(150_950_000.),
             secondary: vec![globe_rs::System {
                 primary: Body {
                     name: Name::from_str("Moon").unwrap(),
@@ -43,5 +43,5 @@ fn load_storage() -> Storage {
         }],
     };
 
-    Storage { system }
+    config::Config { system }
 }

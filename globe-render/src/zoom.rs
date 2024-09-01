@@ -1,0 +1,34 @@
+use bevy::{input::mouse::MouseWheel, prelude::*};
+
+use crate::{camera::MainCamera, cursor::Cursor};
+
+/// Logarithmically zooms towards the pointed object.
+pub fn logarithmic(
+    mut scroll: EventReader<MouseWheel>,
+    mut projection_query: Query<(&mut OrthographicProjection, &mut Transform), With<MainCamera>>,
+    keys: Res<ButtonInput<KeyCode>>,
+    cursor: Res<Cursor>,
+) {
+    if !keys.pressed(KeyCode::ControlLeft) {
+        // zoom required the left ctrl key to be pressed
+        return;
+    }
+
+    let (mut projection, mut transform) = projection_query.single_mut();
+    for scroll in scroll.read() {
+        let mut scale = projection.scale.ln();
+        scale += 0.1 * scroll.y;
+        scale = scale.exp();
+
+        let scale_ratio = projection.scale / scale;
+        projection.scale = scale;
+
+        let window_center = Vec2::new(transform.translation.x, transform.translation.y);
+        let relative_cursor_before = cursor.coords() - window_center;
+        let relative_cursor_after = relative_cursor_before * scale_ratio;
+        let translation = relative_cursor_after - relative_cursor_before;
+
+        transform.translation.x += translation.x;
+        transform.translation.y += translation.y;
+    }
+}
