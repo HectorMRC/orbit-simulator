@@ -2,9 +2,13 @@ pub mod cartesian;
 
 pub mod geographic;
 
-pub mod orbit;
+mod orbit;
+use std::ops::Add;
 
-pub mod system;
+pub use orbit::*;
+
+mod system;
+pub use system::*;
 
 mod distance;
 pub use distance::*;
@@ -36,6 +40,26 @@ impl From<PositiveFloat> for f64 {
     fn from(value: PositiveFloat) -> Self {
         value.0
     }
+}
+
+impl Eq for PositiveFloat {}
+
+impl Ord for PositiveFloat {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.total_cmp(&other.0)
+    }
+}
+
+impl Add for PositiveFloat {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl PositiveFloat {
+    pub const ZERO: Self = Self(0.);
 }
 
 #[cfg(test)]

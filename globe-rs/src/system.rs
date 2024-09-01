@@ -2,8 +2,11 @@ use std::{collections::VecDeque, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{cartesian::{shape::Arc, Coords}, orbit::Orbit, Distance, Frequency, Mass, Radiant};
-
+use crate::{
+    cartesian::{shape::Arc, Coords},
+    orbit::Orbit,
+    Distance, Frequency, Mass, Radiant,
+};
 
 /// An arbitrary spherical body.
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
@@ -21,7 +24,7 @@ pub struct Body {
 pub struct System {
     /// The central body of the system.
     pub primary: Body,
-    /// The distance between the surface of the primary body of this system and that of the one it
+    /// The distance between the center of the primary body of this system and that of the one it
     /// orbits, if any.
     pub distance: Distance,
     /// The systems orbiting the primary body.
@@ -34,7 +37,7 @@ impl<'a> IntoIterator for &'a System {
 
     fn into_iter(self) -> Self::IntoIter {
         SystemIter {
-            next: Some(self), 
+            next: Some(self),
             ..Default::default()
         }
     }
@@ -45,13 +48,24 @@ impl System {
     pub fn state_at(&self, time: Duration) -> SystemState {
         SystemState::at(time, self, None)
     }
+
+    /// Returns the radius of the system.
+    pub fn radius(&self) -> Distance {
+        let this_radius = self.distance + self.primary.radius;
+
+        self.secondary
+            .iter()
+            .map(|system| system.radius() + this_radius)
+            .max()
+            .unwrap_or(this_radius)
+    }
 }
 
-/// Iterates over all the systems conforming the given system. 
+/// Iterates over all the systems conforming the given system.
 #[derive(Debug, Default)]
 pub struct SystemIter<'a> {
     next: Option<&'a System>,
-    pending: VecDeque<&'a System>
+    pending: VecDeque<&'a System>,
 }
 
 impl<'a> Iterator for SystemIter<'a> {
@@ -92,7 +106,7 @@ impl<'a> IntoIterator for &'a SystemState {
 
     fn into_iter(self) -> Self::IntoIter {
         SystemStateIter {
-            next: Some(self), 
+            next: Some(self),
             ..Default::default()
         }
     }
@@ -108,12 +122,9 @@ impl SystemState {
             return Default::default();
         };
 
-        let radius =
-            system.distance.as_km() + system.primary.radius.as_km() + parent.body.radius.as_km();
-
         let orbit = Arc::default()
             .with_center(parent.position)
-            .with_start([0., radius, 0.].into())
+            .with_start([0., system.distance.as_km(), 0.].into())
             .with_axis([0., 0., 1.].into());
 
         let theta =
@@ -146,7 +157,7 @@ impl SystemState {
 #[derive(Debug, Default)]
 pub struct SystemStateIter<'a> {
     next: Option<&'a SystemState>,
-    pending: VecDeque<&'a SystemState>
+    pending: VecDeque<&'a SystemState>,
 }
 
 impl<'a> Iterator for SystemStateIter<'a> {
@@ -160,7 +171,6 @@ impl<'a> Iterator for SystemStateIter<'a> {
         Some(next)
     }
 }
-
 
 /// Iterates over time yielding the corresponding state for a given [System].  
 pub struct SystemStateGenerator<'a> {

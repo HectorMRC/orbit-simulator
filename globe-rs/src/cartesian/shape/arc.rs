@@ -2,7 +2,10 @@ use crate::{
     cartesian::{
         transform::{Rotation, Translation},
         Coords,
-    }, orbit::{Orbit, G}, system::Body, Distance, Frequency, Radiant, Velocity, TWO_PI
+    },
+    orbit::{Orbit, G},
+    system::Body,
+    Distance, Frequency, Radiant, Velocity, TWO_PI,
 };
 
 use super::{Sample, Shape};
