@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+alvidir.workspace = true
 bevy = "0.14"
 globe-rs.workspace = true
 
