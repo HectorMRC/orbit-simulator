@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, time::Duration};
 
 use serde::{Deserialize, Serialize};
+use alvidir::name::Name;
 
 use crate::{
     cartesian::{shape::Arc, Coords},
@@ -9,8 +10,10 @@ use crate::{
 };
 
 /// An arbitrary spherical body.
-#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Body {
+    /// The name of the body.
+    pub name: Name<Self>,
     /// The radius of the body.
     pub radius: Distance,
     /// The frequency of rotation over its own axis.
@@ -20,7 +23,7 @@ pub struct Body {
 }
 
 /// An orbital system.
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct System {
     /// The central body of the system.
     pub primary: Body,
@@ -81,10 +84,10 @@ impl<'a> Iterator for SystemIter<'a> {
 }
 
 /// An union of the [Body] type and its [Cartesian] position.
-#[derive(Debug, Default, Clone, Copy)]
-struct BodyPosition {
+#[derive(Debug, Clone, Copy)]
+struct BodyPosition<'a> {
     /// The body itself.
-    body: Body,
+    body: &'a Body,
     /// The location of the body.
     position: Coords,
 }
@@ -113,7 +116,7 @@ impl<'a> IntoIterator for &'a SystemState {
 }
 
 impl SystemState {
-    fn rotation_at(time: Duration, body: Body) -> Radiant {
+    fn rotation_at(time: Duration, body: &Body) -> Radiant {
         (Radiant::from(body.rotation).as_f64() * time.as_secs() as f64).into()
     }
 
@@ -135,11 +138,11 @@ impl SystemState {
 
     fn at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Self {
         let mut state = SystemState::default();
-        state.rotation = Self::rotation_at(time, system.primary);
+        state.rotation = Self::rotation_at(time, &system.primary);
         state.position = Self::position_at(time, system, parent);
 
         let parent = BodyPosition {
-            body: system.primary,
+            body: &system.primary,
             position: state.position,
         };
 

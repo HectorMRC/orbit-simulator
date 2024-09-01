@@ -8,9 +8,10 @@ readme = "./README.md"
 repository = "https://github.com/HectorMRC/globe-rs"
 
 [dependencies]
+alvidir.workspace = true
 nalgebra = "0.33.0"
 num-traits = "0.2.19"
-serde.workspace = true
+serde = { workspace = true, features = ["derive"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

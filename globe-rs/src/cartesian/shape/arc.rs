@@ -48,11 +48,11 @@ impl Sample for Arc {
 
 /// An orbit in which the orbiting body moves in a perfect circle around the central body.
 impl Orbit for Arc {
-    fn velocity(&self, central_body: Body) -> Velocity {
+    fn velocity(&self, central_body: &Body) -> Velocity {
         Velocity::meters_sec((G * central_body.mass.as_kg() / self.radius().as_meters()).sqrt())
     }
 
-    fn frequency(&self, central_body: Body) -> Frequency {
+    fn frequency(&self, central_body: &Body) -> Frequency {
         Frequency::hz(self.velocity(central_body).as_meters_sec() / self.perimeter().as_meters())
     }
 }
