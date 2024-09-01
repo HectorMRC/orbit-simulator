@@ -19,7 +19,7 @@ use super::{Coords, Transform};
 /// use globe_rs::{
 ///     cartesian::{
 ///         transform::{Rotation, Transform},
-///         Cartesian,
+///         Coords,
 ///     },
 /// };
 ///
@@ -28,13 +28,13 @@ use super::{Coords, Transform};
 ///
 ///
 /// let rotated = Rotation::default()
-///     .with_axis(Cartesian::from([1., 0., 0.]))
+///     .with_axis(Coords::from([1., 0., 0.]))
 ///     .with_theta(FRAC_PI_2.into())
-///     .transform(Cartesian::from([0., 1., 0.]));
+///     .transform(Coords::from([0., 1., 0.]));
 ///
 /// rotated
 ///     .into_iter()
-///     .zip(Cartesian::from([0., 0., 1.]).into_iter())
+///     .zip(Coords::from([0., 0., 1.]).into_iter())
 ///     .for_each(|(&got, &want)| {
 ///         assert!(
 ///             (got - want).abs() <= ABS_ERROR,
