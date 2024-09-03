@@ -63,7 +63,7 @@ fn spawn_system_state(
 
     let parent = ParentState {
         body: &system.primary,
-        state: &state,
+        state,
     };
 
     system

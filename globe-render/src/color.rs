@@ -1,31 +1,32 @@
 //! Colors according to the [sunset color-palette](https://coolors.co/e79356-baaa95-83817e-4b4c53-2d2f34-1c1e21-131416)
+#![allow(dead_code)]
 
 use bevy::color::Color;
 
 /// Hexa RGB: #e79356
 pub const PERSIAN_ORANGE: Color =
-    Color::srgb(0.9058823529411765, 0.5764705882352941, 0.33725490196078434);
+    Color::srgb(0.905_882_36, 0.576_470_6, 0.337_254_9);
 
 /// Hexa RGB: #baaa95
-pub const KHAKI: Color = Color::srgb(0.7294117647058823, 0.6666666666666666, 0.5843137254901961);
+pub const KHAKI: Color = Color::srgb(0.729_411_8, 0.666_666_7, 0.584_313_75);
 
 /// Hexa RGB: #83817e
 pub const BATTLESHIP_GRAY: Color =
-    Color::srgb(0.5137254901960784, 0.5058823529411764, 0.49411764705882355);
+    Color::srgb(0.513_725_5, 0.505_882_4, 0.494_117_65);
 
 /// Hexa RGB: #4b4c53
 pub const DAVYS_GRAY: Color =
-    Color::srgb(0.29411764705882354, 0.2980392156862745, 0.3254901960784314);
+    Color::srgb(0.294_117_66, 0.298_039_23, 0.325_490_2);
 
 /// Hexa RGB: #2d2f34
-pub const JET: Color = Color::srgb(0.17647058823529413, 0.1843137254901961, 0.20392156862745098);
+pub const JET: Color = Color::srgb(0.176_470_6, 0.184_313_73, 0.203_921_57);
 
 /// Hexa RGB: #1c1e21
 pub const EERIE_BLACK: Color = Color::srgb(
-    0.10980392156862745,
-    0.11764705882352941,
-    0.12941176470588237,
+    0.109_803_92,
+    0.117_647_06,
+    0.129_411_77,
 );
 
 /// Hexa RGB: #131416
-pub const NIGHT: Color = Color::srgb(0.07450980392156863, 0.0784313725490196, 0.08627450980392157);
+pub const NIGHT: Color = Color::srgb(0.074_509_81, 0.078_431_375, 0.086_274_51);
