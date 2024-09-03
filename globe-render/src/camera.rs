@@ -18,8 +18,10 @@ pub fn spawn(mut commands: Commands, config: Res<Config>, window: Query<&Window>
         Camera2dBundle {
             camera: Camera {
                 clear_color: ClearColorConfig::Custom(color::NIGHT),
+                // hdr: true,
                 ..default()
             },
+            // tonemapping: Tonemapping::TonyMcMapface,
             projection: OrthographicProjection {
                 near: -system_radius,
                 far: system_radius,
@@ -28,6 +30,7 @@ pub fn spawn(mut commands: Commands, config: Res<Config>, window: Query<&Window>
             },
             ..default()
         },
+        // BloomSettings::default(),
         MainCamera,
     ));
 }

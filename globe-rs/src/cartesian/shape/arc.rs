@@ -99,16 +99,10 @@ impl Arc {
         let rotation = Rotation::default()
             .with_axis(self.axis)
             .with_theta(self.theta);
-        
-        let point = self.start
-            .transform(translation);
-        
-        let point = point
-            .transform(rotation);
 
-        let point = point
-            .transform(-translation);
-
-        point
+        self.start
+            .transform(translation)
+            .transform(rotation)
+            .transform(-translation)
     }
 }

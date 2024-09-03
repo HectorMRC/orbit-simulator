@@ -1,4 +1,7 @@
-use bevy::{input::mouse::MouseWheel, prelude::*};
+use bevy::{
+    input::mouse::{MouseScrollUnit, MouseWheel},
+    prelude::*,
+};
 
 use crate::{camera::MainCamera, cursor::Cursor};
 
@@ -16,8 +19,13 @@ pub fn logarithmic(
 
     let (mut projection, mut transform) = projection_query.single_mut();
     for scroll in scroll.read() {
+        let orientation = match scroll.unit {
+            MouseScrollUnit::Line => -1., // using hardware with fixed steps (e.g. mice wheel)
+            MouseScrollUnit::Pixel => 1., // using fine-grained hardware (e.g. touchpads)
+        };
+
         let mut scale = projection.scale.ln();
-        scale += 0.1 * scroll.y;
+        scale += 0.1 * scroll.y * orientation;
         scale = scale.exp();
 
         let scale_ratio = projection.scale / scale;

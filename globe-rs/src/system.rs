@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{cmp::Ordering, time::Duration};
 
 use alvidir::name::Name;
 use serde::{Deserialize, Serialize};
@@ -47,7 +47,7 @@ impl System {
         self.secondary
             .iter()
             .map(|system| system.radius() + this_radius)
-            .max()
+            .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
             .unwrap_or(this_radius)
     }
 }
@@ -97,9 +97,11 @@ impl SystemState {
     }
 
     fn at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Self {
-        let mut state = SystemState::default();
-        state.rotation = Self::rotation_at(time, &system.primary);
-        state.position = Self::position_at(time, system, parent);
+        let mut state = SystemState { 
+            rotation: Self::rotation_at(time, &system.primary), 
+            position: Self::position_at(time, system, parent), 
+            ..Default::default()
+        };
 
         let parent = BodyPosition {
             body: &system.primary,

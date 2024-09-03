@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::PositiveFloat;
 
 /// The distance between two points in space, which is always a positive number.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
 pub struct Distance(PositiveFloat);
 
 impl Add for Distance {
