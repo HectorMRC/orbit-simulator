@@ -2,16 +2,21 @@ use std::time::Duration;
 
 use bevy::{
     prelude::*,
+    render::storage::ShaderStorageBuffer,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use globe_rs::{System, SystemState};
 
-use crate::{color, material::RadialGradientMaterial, shape};
+use crate::{
+    color,
+    material::{RadialGradientMaterial, RadialGradientMaterialBuilder},
+    shape,
+};
 
 /// The configuration of the game.
 #[derive(Resource)]
 pub struct Config {
-    pub system: globe_rs::System,   
+    pub system: globe_rs::System,
 }
 
 /// A body in the system.
@@ -26,6 +31,7 @@ pub struct Orbit;
 pub fn spawn(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
     mut materials: (
         ResMut<Assets<ColorMaterial>>,
         ResMut<Assets<RadialGradientMaterial>>,
@@ -35,6 +41,7 @@ pub fn spawn(
     spawn_system_state(
         &mut commands,
         &mut meshes,
+        &mut buffers,
         &mut materials,
         &config.system,
         &config.system.state_at(Duration::ZERO),
@@ -49,7 +56,8 @@ struct ParentState<'a> {
 
 fn spawn_system_state(
     commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,  
+    meshes: &mut ResMut<Assets<Mesh>>,
+    buffers: &mut ResMut<Assets<ShaderStorageBuffer>>,
     materials: &mut (
         ResMut<Assets<ColorMaterial>>,
         ResMut<Assets<RadialGradientMaterial>>,
@@ -59,7 +67,7 @@ fn spawn_system_state(
     parent: Option<&ParentState>,
 ) {
     spawn_body(commands, meshes, &mut materials.0, system, state);
-    spawn_orbit(commands, meshes, &mut materials.1, system, parent);
+    spawn_orbit(commands, meshes, buffers, &mut materials.1, system, parent);
 
     let parent = ParentState {
         body: &system.primary,
@@ -71,7 +79,15 @@ fn spawn_system_state(
         .iter()
         .zip(state.secondary.iter())
         .for_each(|(system, state)| {
-            spawn_system_state(commands, meshes, materials, system, state, Some(&parent))
+            spawn_system_state(
+                commands,
+                meshes,
+                buffers,
+                materials,
+                system,
+                state,
+                Some(&parent),
+            )
         });
 }
 
@@ -97,9 +113,10 @@ fn spawn_body(
     ));
 }
 
-fn spawn_orbit(
+fn spawn_orbit<'a>(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
+    buffers: &'a mut ResMut<Assets<ShaderStorageBuffer>>,
     materials: &mut ResMut<Assets<RadialGradientMaterial>>,
     system: &System,
     parent: Option<&ParentState>,
@@ -121,13 +138,16 @@ fn spawn_orbit(
         MaterialMesh2dBundle {
             mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(shadow_radius))),
             transform,
-            material: materials.add(RadialGradientMaterial {
-                colors: [color::PERSIAN_ORANGE.into(), color::NIGHT.into(), color::NIGHT.with_alpha(0.).into()],
-                //  segments: vec![0., orbit_radius, shadow_radius], 
-                center: transform.translation,
-            }),
+            material: materials.add(
+                RadialGradientMaterialBuilder::new(buffers)
+                    .with_center(transform.translation)
+                    .with_segment(color::EERIE_BLACK, orbit_radius)
+                    .with_segment(color::NIGHT, orbit_radius)
+                    .with_segment(color::NIGHT.with_alpha(0.), shadow_radius)
+                    .build(),
+            ),
             ..default()
         },
-        Orbit,
+        Body,
     ));
 }

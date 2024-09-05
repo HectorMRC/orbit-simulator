@@ -97,9 +97,9 @@ impl SystemState {
     }
 
     fn at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Self {
-        let mut state = SystemState { 
-            rotation: Self::rotation_at(time, &system.primary), 
-            position: Self::position_at(time, system, parent), 
+        let mut state = SystemState {
+            rotation: Self::rotation_at(time, &system.primary),
+            position: Self::position_at(time, system, parent),
             ..Default::default()
         };
 

@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 alvidir.workspace = true
-bevy = "0.14"
+bevy = { git = "https://github.com/bevyengine/bevy", branch = "main" }
+bytemuck = "1.17"
 globe-rs.workspace = true
 
 [lib]
