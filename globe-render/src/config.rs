@@ -11,7 +11,7 @@ use crate::{color, material::RadialGradientMaterial, shape};
 /// The configuration of the game.
 #[derive(Resource)]
 pub struct Config {
-    pub system: globe_rs::System,
+    pub system: globe_rs::System,   
 }
 
 /// A body in the system.
@@ -49,7 +49,7 @@ struct ParentState<'a> {
 
 fn spawn_system_state(
     commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
+    meshes: &mut ResMut<Assets<Mesh>>,  
     materials: &mut (
         ResMut<Assets<ColorMaterial>>,
         ResMut<Assets<RadialGradientMaterial>>,
@@ -58,8 +58,8 @@ fn spawn_system_state(
     state: &SystemState,
     parent: Option<&ParentState>,
 ) {
-    spawn_body(commands, meshes, materials, system, state);
-    spawn_orbit(commands, meshes, materials, system, parent);
+    spawn_body(commands, meshes, &mut materials.0, system, state);
+    spawn_orbit(commands, meshes, &mut materials.1, system, parent);
 
     let parent = ParentState {
         body: &system.primary,
@@ -78,10 +78,7 @@ fn spawn_system_state(
 fn spawn_body(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut (
-        ResMut<Assets<ColorMaterial>>,
-        ResMut<Assets<RadialGradientMaterial>>,
-    ),
+    materials: &mut ResMut<Assets<ColorMaterial>>,
     system: &System,
     state: &SystemState,
 ) {
@@ -93,7 +90,7 @@ fn spawn_body(
                 meshes.add(shape::circle_mesh(system.primary.radius.as_km() as f32)),
             ),
             transform,
-            material: materials.0.add(color::PERSIAN_ORANGE),
+            material: materials.add(color::PERSIAN_ORANGE),
             ..default()
         },
         Body,
@@ -103,10 +100,7 @@ fn spawn_body(
 fn spawn_orbit(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut (
-        ResMut<Assets<ColorMaterial>>,
-        ResMut<Assets<RadialGradientMaterial>>,
-    ),
+    materials: &mut ResMut<Assets<RadialGradientMaterial>>,
     system: &System,
     parent: Option<&ParentState>,
 ) {
@@ -125,30 +119,12 @@ fn spawn_orbit(
 
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(orbit_radius))),
-            transform,
-            material: materials.0.add(color::EERIE_BLACK),
-            ..default()
-        },
-        Orbit,
-    ));
-
-    let transform = transform.with_translation(
-        transform
-            .translation
-            .with_z(transform.translation.z - system.primary.radius.as_km() as f32),
-    );
-
-    commands.spawn((
-        MaterialMesh2dBundle {
             mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(shadow_radius))),
             transform,
-            material: materials.1.add(RadialGradientMaterial {
-                from_color: color::NIGHT.into(),
-                to_color: color::NIGHT.with_alpha(0.).into(),
+            material: materials.add(RadialGradientMaterial {
+                colors: [color::PERSIAN_ORANGE.into(), color::NIGHT.into(), color::NIGHT.with_alpha(0.).into()],
+                //  segments: vec![0., orbit_radius, shadow_radius], 
                 center: transform.translation,
-                start_at: orbit_radius,
-                end_at: shadow_radius,
             }),
             ..default()
         },
