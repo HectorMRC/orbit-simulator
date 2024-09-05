@@ -24,12 +24,12 @@ impl Material2d for RadialGradientMaterial {
     }
 
     fn alpha_mode(&self) -> AlphaMode2d {
-        AlphaMode2d::Blend  
+        AlphaMode2d::Blend
     }
 }
 
 struct ColorSegment {
-    color: [f32; 4],    
+    color: [f32; 4],
     start: f32,
 }
 
@@ -54,17 +54,17 @@ impl<'a, 'b> RadialGradientMaterialBuilder<'a, 'b> {
     }
 
     pub fn with_segment(mut self, color: Color, start: f32) -> Self {
-        self.segments.push(ColorSegment{
+        self.segments.push(ColorSegment {
             color: color.to_linear().to_f32_array(),
             start,
         });
-        
+
         self
     }
 
     pub fn build(mut self) -> RadialGradientMaterial {
         self.segments.sort_by(|a, b| a.start.total_cmp(&b.start));
-        
+
         let mut segments = Vec::with_capacity(self.segments.len());
         let mut colors = Vec::with_capacity(self.segments.len());
         self.segments.into_iter().for_each(|segment| {
