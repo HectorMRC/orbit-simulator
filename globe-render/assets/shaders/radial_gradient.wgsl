@@ -7,7 +7,6 @@
 @fragment
 fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let fragment_radius = distance(mesh.world_position.xyz, center);
-    mix(vec4(0., 1., 0., 1.), vec4(1., 0., 0., 0.), vec4(1., 1., 1., 1.));
 
     var final_color = colors[0];
     for (var i = 0u; i < arrayLength(&segments); i++) {
