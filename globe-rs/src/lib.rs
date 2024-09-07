@@ -44,11 +44,11 @@ impl From<PositiveFloat> for f64 {
 
 impl Eq for PositiveFloat {}
 
-// impl Ord for PositiveFloat {
-//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-//         self.0.total_cmp(&other.0)
-//     }
-// }
+impl Ord for PositiveFloat {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.total_cmp(&other.0)
+    }
+}
 
 impl Add for PositiveFloat {
     type Output = Self;

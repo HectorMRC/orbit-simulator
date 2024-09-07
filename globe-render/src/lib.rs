@@ -1,6 +1,5 @@
 use bevy::{prelude::*, sprite::Material2dPlugin};
 use material::RadialGradientMaterial;
-// use material::PlainMaterial;
 
 mod camera;
 mod color;
