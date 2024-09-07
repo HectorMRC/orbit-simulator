@@ -1,5 +1,5 @@
-use bevy::{input::mouse::MouseButtonInput, prelude::*};
 use alvidir::name::Name;
+use bevy::{input::mouse::MouseButtonInput, prelude::*};
 
 use crate::{config::Body, cursor::Cursor};
 
@@ -28,7 +28,6 @@ pub fn select_on_click(
             .next()
         {
             subject.name = Some(body.0.name.clone());
-            println!("SELECTED: {:?}", subject.name);
         };
     }
 }

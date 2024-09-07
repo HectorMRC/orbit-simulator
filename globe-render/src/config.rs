@@ -1,4 +1,4 @@
-use std::{cmp::min, num::NonZeroU32};
+use std::cmp::min;
 
 use bevy::{
     prelude::*,
@@ -8,7 +8,12 @@ use bevy::{
 use globe_rs::{Distance, System, SystemState};
 
 use crate::{
-    camera::MainCamera, color, material::{RadialGradientMaterial, RadialGradientMaterialBuilder}, shape, subject::Subject
+    camera::MainCamera,
+    color,
+    material::{RadialGradientMaterial, RadialGradientMaterialBuilder},
+    shape,
+    subject::Subject,
+    time::WorldTime,
 };
 
 /// The configuration of the game.
@@ -16,10 +21,6 @@ use crate::{
 pub struct Config {
     pub system: globe_rs::System,
 }
-
-/// The scale at which time passes.
-#[derive(Resource)]
-pub struct TimeScale(pub NonZeroU32);
 
 /// A body in the system.
 #[derive(Component)]
@@ -40,9 +41,8 @@ pub fn spawn(
     ),
     mut camera: Query<&mut Transform, With<MainCamera>>,
     mut subject: ResMut<Subject>,
-    time_scale: Res<TimeScale>,
     config: Res<Config>,
-    time: Res<Time>,
+    time: Res<WorldTime>,
 ) {
     let mut camera = camera.single_mut();
 
@@ -53,10 +53,7 @@ pub fn spawn(
         &mut materials,
         &mut camera,
         &mut subject,
-        SystemFrame::new(
-            &config.system,
-            &config.system.state_at(time.elapsed() * time_scale.0.get()),
-        ),
+        SystemFrame::new(&config.system, &config.system.state_at(time.elapsed_time)),
         None,
     );
 }
@@ -162,7 +159,7 @@ fn spawn_body(
         0.,
     );
 
-    commands.spawn((       
+    commands.spawn((
         MaterialMesh2dBundle {
             mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(
                 frame.system.primary.radius.as_km() as f32
@@ -219,12 +216,13 @@ fn spawn_orbit(
     ));
 }
 
-fn update_camera(
-    camera: &mut Transform,
-    subject: &mut Subject,
-    current_frame: &SystemFrame,
-) {
-    if subject.name.as_ref().map(|name| name == &current_frame.system.primary.name).unwrap_or_default() {
+fn update_camera(camera: &mut Transform, subject: &mut Subject, current_frame: &SystemFrame) {
+    if subject
+        .name
+        .as_ref()
+        .map(|name| name == &current_frame.system.primary.name)
+        .unwrap_or_default()
+    {
         camera.translation.x = current_frame.state.position.x() as f32;
         camera.translation.y = current_frame.state.position.y() as f32;
     }

@@ -13,11 +13,11 @@ pub fn linear(
         // left ctrl key is reserved for zooming
         return;
     }
-    
-    subject.name = None;
+
     let (mut transform, projection) = camera_query.single_mut();
 
     for scroll in scroll.read() {
+        subject.name = None;
         transform.translation.x -= 10. * scroll.x * projection.scale;
         transform.translation.y += 10. * scroll.y * projection.scale;
     }
