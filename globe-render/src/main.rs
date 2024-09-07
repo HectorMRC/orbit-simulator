@@ -20,7 +20,7 @@ fn load_storage() -> config::Config {
             rotation: Frequency::hz(4.2866941e-7),
             mass: Mass::kg(1.9891e30),
         },
-        distance: Distance::NONE,
+        distance: Distance::ZERO,
         secondary: vec![
             globe_rs::System {
                 primary: Body {

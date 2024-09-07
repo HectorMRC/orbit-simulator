@@ -20,12 +20,12 @@ impl Div<f64> for Distance {
     type Output = Self;
 
     fn div(self, rhs: f64) -> Self::Output {
-        Self(PositiveFloat::from(self.0.0 / rhs))
+        Self(PositiveFloat::from(self.0 .0 / rhs))
     }
 }
 
 impl Distance {
-    pub const NONE: Self = Self(PositiveFloat::ZERO);
+    pub const ZERO: Self = Self(PositiveFloat::ZERO);
 
     /// Returns a new distance of km kilometers.
     pub fn km(km: f64) -> Self {
@@ -43,6 +43,6 @@ impl Distance {
     }
 
     pub fn diff(self, rhs: Self) -> Self {
-        Self(PositiveFloat::from(self.0.0 - rhs.0.0))
+        Self(PositiveFloat::from(self.0 .0 - rhs.0 .0))
     }
 }

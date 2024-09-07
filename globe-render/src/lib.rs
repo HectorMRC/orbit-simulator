@@ -1,4 +1,5 @@
 use bevy::{prelude::*, sprite::Material2dPlugin};
+use config::TimeScale;
 use material::RadialGradientMaterial;
 
 mod camera;
@@ -18,8 +19,9 @@ impl Plugin for Globe2DPlugin {
         app.add_plugins(DefaultPlugins)
             .add_plugins(Material2dPlugin::<RadialGradientMaterial>::default())
             .init_resource::<cursor::Cursor>()
+            .insert_resource(TimeScale(3600))
             .add_systems(Startup, camera::spawn)
-            .add_systems(Startup, config::spawn)
+            .add_systems(Update, (config::clear, config::spawn).chain())
             .add_systems(Update, zoom::logarithmic)
             .add_systems(Update, scroll::linear)
             .add_systems(Update, cursor::into_world_coords);
