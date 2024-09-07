@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::{cmp::min, num::NonZeroU32};
 
 use bevy::{
     prelude::*,
@@ -8,9 +8,7 @@ use bevy::{
 use globe_rs::{Distance, System, SystemState};
 
 use crate::{
-    color,
-    material::{RadialGradientMaterial, RadialGradientMaterialBuilder},
-    shape,
+    camera::MainCamera, color, material::{RadialGradientMaterial, RadialGradientMaterialBuilder}, shape, subject::Subject
 };
 
 /// The configuration of the game.
@@ -21,11 +19,11 @@ pub struct Config {
 
 /// The scale at which time passes.
 #[derive(Resource)]
-pub struct TimeScale(pub u32);
+pub struct TimeScale(pub NonZeroU32);
 
 /// A body in the system.
 #[derive(Component)]
-pub struct Body;
+pub struct Body(pub globe_rs::Body);
 
 /// An orbit in the system.
 #[derive(Component)]
@@ -40,18 +38,24 @@ pub fn spawn(
         ResMut<Assets<ColorMaterial>>,
         ResMut<Assets<RadialGradientMaterial>>,
     ),
+    mut camera: Query<&mut Transform, With<MainCamera>>,
+    mut subject: ResMut<Subject>,
     time_scale: Res<TimeScale>,
     config: Res<Config>,
     time: Res<Time>,
 ) {
+    let mut camera = camera.single_mut();
+
     spawn_system_state(
         &mut commands,
         &mut meshes,
         &mut buffers,
         &mut materials,
+        &mut camera,
+        &mut subject,
         SystemFrame::new(
             &config.system,
-            &config.system.state_at(time.elapsed() * time_scale.0),
+            &config.system.state_at(time.elapsed() * time_scale.0.get()),
         ),
         None,
     );
@@ -110,9 +114,12 @@ fn spawn_system_state(
         ResMut<Assets<ColorMaterial>>,
         ResMut<Assets<RadialGradientMaterial>>,
     ),
+    camera: &mut Transform,
+    subject: &mut ResMut<Subject>,
     current_frame: SystemFrame,
     previous_frame: Option<&SystemFrame>,
 ) {
+    update_camera(camera, subject, &current_frame);
     spawn_body(commands, meshes, &mut materials.0, &current_frame);
     spawn_orbit(
         commands,
@@ -135,6 +142,8 @@ fn spawn_system_state(
                 meshes,
                 buffers,
                 materials,
+                camera,
+                subject,
                 frame,
                 Some(&current_frame),
             )
@@ -143,8 +152,8 @@ fn spawn_system_state(
 
 fn spawn_body(
     commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<ColorMaterial>,
     frame: &SystemFrame,
 ) {
     let transform = Transform::from_xyz(
@@ -153,7 +162,7 @@ fn spawn_body(
         0.,
     );
 
-    commands.spawn((
+    commands.spawn((       
         MaterialMesh2dBundle {
             mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(
                 frame.system.primary.radius.as_km() as f32
@@ -162,15 +171,15 @@ fn spawn_body(
             material: materials.add(color::PERSIAN_ORANGE),
             ..default()
         },
-        Body,
+        Body(frame.system.primary.clone()),
     ));
 }
 
 fn spawn_orbit(
     commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    buffers: &mut ResMut<Assets<ShaderStorageBuffer>>,
-    materials: &mut ResMut<Assets<RadialGradientMaterial>>,
+    meshes: &mut Assets<Mesh>,
+    buffers: &mut Assets<ShaderStorageBuffer>,
+    materials: &mut Assets<RadialGradientMaterial>,
     current_frame: &SystemFrame,
     previous_frame: Option<&SystemFrame>,
 ) {
@@ -182,6 +191,7 @@ fn spawn_orbit(
         + current_frame.system.distance
         + current_frame.system.primary.radius)
         .as_km() as f32;
+
     let shadow_radius =
         orbit_radius + (previous_frame.min_interorbit_distance / 10.).as_km() as f32;
 
@@ -207,4 +217,15 @@ fn spawn_orbit(
         },
         Orbit,
     ));
+}
+
+fn update_camera(
+    camera: &mut Transform,
+    subject: &mut Subject,
+    current_frame: &SystemFrame,
+) {
+    if subject.name.as_ref().map(|name| name == &current_frame.system.primary.name).unwrap_or_default() {
+        camera.translation.x = current_frame.state.position.x() as f32;
+        camera.translation.y = current_frame.state.position.y() as f32;
+    }
 }

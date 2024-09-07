@@ -33,14 +33,14 @@ struct ColorSegment {
     start: f32,
 }
 
-pub struct RadialGradientMaterialBuilder<'a, 'b> {
-    buffer: &'a mut ResMut<'b, Assets<ShaderStorageBuffer>>,
+pub struct RadialGradientMaterialBuilder<'a> {
+    buffer: &'a mut Assets<ShaderStorageBuffer>,
     segments: Vec<ColorSegment>,
     center: Vec3,
 }
 
-impl<'a, 'b> RadialGradientMaterialBuilder<'a, 'b> {
-    pub fn new(buffer: &'a mut ResMut<'b, Assets<ShaderStorageBuffer>>) -> Self {
+impl<'a> RadialGradientMaterialBuilder<'a> {
+    pub fn new(buffer: &'a mut Assets<ShaderStorageBuffer>) -> Self {
         Self {
             buffer,
             segments: Default::default(),

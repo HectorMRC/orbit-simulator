@@ -4,13 +4,8 @@ use crate::camera::MainCamera;
 
 /// The world position of the mouse cursor.
 #[derive(Resource, Default, Clone, Copy)]
-pub struct Cursor(Vec2);
-
-impl Cursor {
-    /// Returns the position of the cursor in world-coordinates
-    pub fn coords(&self) -> Vec2 {
-        self.0
-    }
+pub struct Cursor {
+    pub position: Vec3,
 }
 
 /// Updates the [Cursor] resource with the corresponding world-coordinates.
@@ -31,8 +26,8 @@ pub fn into_world_coords(
     if let Some(world_position) = window
         .cursor_position()
         .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor).ok())
-        .map(|ray| ray.origin.truncate())
+        .map(|ray| ray.origin.with_z(0.))
     {
-        cursor_coords.0 = world_position;
+        cursor_coords.position = world_position;
     }
 }

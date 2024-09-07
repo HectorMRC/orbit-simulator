@@ -31,8 +31,7 @@ pub fn logarithmic(
         let scale_ratio = projection.scale / scale;
         projection.scale = scale;
 
-        let window_center = Vec2::new(transform.translation.x, transform.translation.y);
-        let relative_cursor_before = cursor.coords() - window_center;
+        let relative_cursor_before = cursor.position - transform.translation;
         let relative_cursor_after = relative_cursor_before * scale_ratio;
         let translation = relative_cursor_after - relative_cursor_before;
 
