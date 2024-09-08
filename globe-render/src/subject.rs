@@ -1,7 +1,7 @@
 use alvidir::name::Name;
 use bevy::{input::mouse::MouseButtonInput, prelude::*};
 
-use crate::{system::Body, cursor::Cursor};
+use crate::{camera::MainCamera, cursor::Cursor, system::Body};
 
 #[derive(Resource, Default)]
 pub struct Subject {
@@ -29,5 +29,22 @@ pub fn select_on_click(
         {
             subject.name = Some(body.name.clone());
         };
+    }
+}
+
+pub fn focus(
+    mut camera: Query<&mut Transform, With<MainCamera>>,
+    bodies: Query<&Body>,
+    subject: Res<Subject>,
+) {
+    let mut camera = camera.single_mut();
+
+    let Some(subject) = &subject.name else {
+        return;
+    };
+
+    if let Some(body) = bodies.iter().find(|body| &body.spec.name == subject) {
+        camera.translation.x = body.position.x;
+        camera.translation.y = body.position.y;
     }
 }

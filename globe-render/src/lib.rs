@@ -24,11 +24,11 @@ impl Plugin for Globe2DPlugin {
             .init_resource::<time::WorldTime>()
             .add_systems(Startup, camera::spawn)
             .add_systems(PreUpdate, time::update_time)
-            .add_systems(Update, (system::clear, system::spawn).chain())
+            .add_systems(Update, (system::clear_all, system::spawn_system, system::spawn_habitable_zone, subject::focus).chain())
+            .add_systems(Update, subject::select_on_click)
             .add_systems(Update, zoom::logarithmic)
             .add_systems(Update, scroll::linear)
             .add_systems(Update, cursor::into_world_coords)
-            .add_systems(Update, subject::select_on_click)
             .add_systems(Update, time::update_time_settings);
     }
 }

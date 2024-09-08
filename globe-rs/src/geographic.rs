@@ -172,7 +172,7 @@ impl From<f64> for Altitude {
 
 impl From<Altitude> for f64 {
     fn from(value: Altitude) -> Self {
-        value.0.into()
+        value.0.0
     }
 }
 

@@ -3,9 +3,9 @@ use crate::{
         transform::{Rotation, Translation},
         Coords,
     },
-    orbit::{Orbit, G},
+    orbit::{Orbit, GRAVITATIONAL_CONSTANT},
     system::Body,
-    Distance, Frequency, Radiant, Velocity, TWO_PI,
+    Distance, Frequency, Radiant, Velocity,
 };
 
 use super::{Sample, Shape};
@@ -25,7 +25,7 @@ pub struct Arc {
 
 impl Sample for Arc {
     fn sample(&self, segments: usize) -> super::Shape {
-        let theta = (f64::from(self.theta) / segments as f64).into();
+        let theta = (self.theta.as_f64() / segments as f64).into();
 
         let translation = Translation::default().with_vector(-self.center);
         let rotation = Rotation::default().with_axis(self.axis).with_theta(theta);
@@ -49,7 +49,7 @@ impl Sample for Arc {
 /// An orbit in which the orbiting body moves in a perfect circle around the central body.
 impl Orbit for Arc {
     fn velocity(&self, central_body: &Body) -> Velocity {
-        Velocity::meters_sec((G * central_body.mass.as_kg() / self.radius().as_meters()).sqrt())
+        Velocity::meters_sec((GRAVITATIONAL_CONSTANT * central_body.mass.as_kg() / self.radius().as_meters()).sqrt())
     }
 
     fn frequency(&self, central_body: &Body) -> Frequency {
@@ -80,12 +80,12 @@ impl Arc {
 
     /// Returns the length of the arc.
     pub fn length(&self) -> Distance {
-        Distance::km(self.center.distance(&self.start) * f64::from(self.theta))
+        Distance::km(self.center.distance(&self.start) * self.theta.as_f64())
     }
 
     /// Returns the perimeter of the arc's circumference.
     pub fn perimeter(&self) -> Distance {
-        Distance::km(self.center.distance(&self.start) * TWO_PI)
+        Distance::km(self.center.distance(&self.start) * Radiant::TWO_PI.as_f64())
     }
 
     /// Returns the radius of the arc.

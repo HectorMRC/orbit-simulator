@@ -1,7 +1,7 @@
 use crate::{system::Body, Frequency, Velocity};
 
 /// The gravitational constant as N⋅m^2⋅kg^−2.
-pub const G: f64 = 6.67430e-11;
+pub const GRAVITATIONAL_CONSTANT: f64 = 6.67430e-11;
 
 /// The orbit of an object around a central body.
 pub trait Orbit {

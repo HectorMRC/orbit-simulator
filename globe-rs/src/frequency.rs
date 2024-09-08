@@ -14,6 +14,6 @@ impl Frequency {
 
     /// Returns a [f64] representing the frequency in hertz.
     pub fn as_hz(&self) -> f64 {
-        self.0.into()
+        self.0.0
     }
 }

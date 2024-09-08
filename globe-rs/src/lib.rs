@@ -3,8 +3,6 @@ pub mod cartesian;
 pub mod geographic;
 
 mod orbit;
-use std::ops::Add;
-
 pub use orbit::*;
 
 mod system;
@@ -23,11 +21,13 @@ mod radiant;
 pub use radiant::*;
 
 mod velocity;
-use serde::{Deserialize, Serialize};
 pub use velocity::*;
 
+mod luminosity;
+pub use luminosity::*;
+
 /// A [f64] that is always positive.
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 struct PositiveFloat(f64);
 
 impl From<f64> for PositiveFloat {
@@ -36,25 +36,11 @@ impl From<f64> for PositiveFloat {
     }
 }
 
-impl From<PositiveFloat> for f64 {
-    fn from(value: PositiveFloat) -> Self {
-        value.0
-    }
-}
-
 impl Eq for PositiveFloat {}
 
 impl Ord for PositiveFloat {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.0.total_cmp(&other.0)
-    }
-}
-
-impl Add for PositiveFloat {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0)
     }
 }
 

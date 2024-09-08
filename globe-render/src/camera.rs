@@ -4,7 +4,9 @@ use crate::{color, system::System};
 
 /// The main camera.
 #[derive(Component)]
-pub struct MainCamera;
+pub struct MainCamera {
+    pub initial_scale: f32,
+}
 
 /// Spawns the main camera.
 pub fn spawn(mut commands: Commands, system: Res<System>, window: Query<&Window>) {
@@ -28,6 +30,8 @@ pub fn spawn(mut commands: Commands, system: Res<System>, window: Query<&Window>
             },
             ..default()
         },
-        MainCamera,
+        MainCamera {
+            initial_scale: scale,
+        },
     ));
 }

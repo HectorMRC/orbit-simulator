@@ -1,51 +1,45 @@
 use std::f64::consts::PI;
 
-use crate::Frequency;
-
-pub const TWO_PI: f64 = 2. * PI;
+use crate::{Frequency, PositiveFloat};
 
 /// The [radiant](https://en.wikipedia.org/wiki/Radian) unit, which is always a positive number
 /// within the range of [0, 2π].
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Radiant(f64);
+pub struct Radiant(PositiveFloat);
 
 impl From<f64> for Radiant {
     fn from(value: f64) -> Self {
-        if (0. ..=TWO_PI).contains(&value) {
-            return Self(value);
+        if (0. ..=Self::TWO_PI.as_f64()).contains(&value) {
+            return Self(value.into());
         }
 
-        let mut modulus = value % TWO_PI;
+        let mut modulus = value % Self::TWO_PI.as_f64();
         if value.is_sign_negative() {
-            modulus = (modulus + TWO_PI) % TWO_PI;
+            modulus = (modulus + Self::TWO_PI.as_f64()) % Self::TWO_PI.as_f64();
         }
 
-        Self(modulus)
-    }
-}
-
-impl From<Radiant> for f64 {
-    fn from(value: Radiant) -> Self {
-        value.0
+        Self(modulus.into())
     }
 }
 
 impl From<Frequency> for Radiant {
     /// The radiants per seconds the frequency represents.
     fn from(value: Frequency) -> Self {
-        (value.as_hz() * TWO_PI).into()
+        (value.as_hz() * Self::TWO_PI.as_f64()).into()
     }
 }
 
 impl Radiant {
+    pub const TWO_PI: Self = Self(PositiveFloat(2. * PI));
+
     /// Returns true if, and only if, self is exactly 2π, which implies a rotation of 360 degrees.
     pub fn is_full(&self) -> bool {
-        self.0 == TWO_PI
+        self.0 == Self::TWO_PI.0
     }
 
     /// Returns the amount of radiants as a [f64].
     pub fn as_f64(&self) -> f64 {
-        self.0
+        self.0.0
     }
 }
 
@@ -53,7 +47,7 @@ impl Radiant {
 mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
-    use crate::{Radiant, TWO_PI};
+    use crate::Radiant;
 
     #[test]
     fn radiant_must_not_exceed_boundaries() {
@@ -71,23 +65,23 @@ mod tests {
             },
             Test {
                 name: "2π radiants must not equals zero",
-                input: TWO_PI,
-                output: TWO_PI,
+                input: Radiant::TWO_PI.as_f64(),
+                output: Radiant::TWO_PI.as_f64(),
             },
             Test {
                 name: "negative radiant must change",
                 input: -FRAC_PI_2,
-                output: TWO_PI - FRAC_PI_2,
+                output: Radiant::TWO_PI.as_f64() - FRAC_PI_2,
             },
             Test {
                 name: "overflowing radiant must change",
-                input: TWO_PI + FRAC_PI_2,
+                input: Radiant::TWO_PI.as_f64() + FRAC_PI_2,
                 output: FRAC_PI_2,
             },
         ]
         .into_iter()
         .for_each(|test| {
-            let radiant: f64 = Radiant::from(test.input).into();
+            let radiant = Radiant::from(test.input).as_f64();
 
             assert_eq!(
                 radiant, test.output,

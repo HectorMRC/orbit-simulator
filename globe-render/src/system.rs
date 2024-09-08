@@ -5,18 +5,17 @@ use bevy::{
     render::storage::ShaderStorageBuffer,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
-use globe_rs::{Distance, SystemState};
+use globe_rs::{Distance, Luminosity, SystemState};
 
 use crate::{
     camera::MainCamera,
     color,
     material::{RadialGradientMaterial, RadialGradientMaterialBuilder},
     shape,
-    subject::Subject,
     time::WorldTime,
 };
 
-/// The configuration of the game.
+/// The orbital system.
 #[derive(Resource)]
 pub struct System (globe_rs::System);
 
@@ -36,58 +35,32 @@ impl From<globe_rs::System> for System {
 
 /// A body in the system.
 #[derive(Component)]
-pub struct Body(globe_rs::Body);
+pub struct Body{
+    pub spec: globe_rs::Body,
+    pub position: Vec3,
+}
 
 impl Deref for Body {
     type Target = globe_rs::Body;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.spec
     }
 }
 
-impl From<globe_rs::Body> for Body {
-    fn from(value: globe_rs::Body) -> Self {
-        Self(value)
-    }
-}
+/// The habitable zone around a body.
+#[derive(Component)]
+pub struct HabitableZone;
 
 /// An orbit in the system.
 #[derive(Component)]
 pub struct Orbit;
 
-/// Spawns the configuration.
-pub fn spawn(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
-    mut materials: (
-        ResMut<Assets<ColorMaterial>>,
-        ResMut<Assets<RadialGradientMaterial>>,
-    ),
-    mut camera: Query<&mut Transform, With<MainCamera>>,
-    mut subject: ResMut<Subject>,
-    system: Res<System>,
-    time: Res<WorldTime>,
-) {
-    let mut camera = camera.single_mut();
-
-    spawn_system_state(
-        &mut commands,
-        &mut meshes,
-        &mut buffers,
-        &mut materials,
-        &mut camera,
-        &mut subject,
-        SystemFrame::new(&system, &system.state_at(time.elapsed_time)),
-        None,
-    );
-}
-
-pub fn clear(
+pub fn clear_all(
     mut commands: Commands,
     bodies: Query<Entity, With<Body>>,
     orbits: Query<Entity, With<Orbit>>,
+    habitable_zone: Query<Entity, With<HabitableZone>>,
 ) {
     bodies.iter().for_each(|body| {
         commands.entity(body).clear();
@@ -95,6 +68,71 @@ pub fn clear(
 
     orbits.iter().for_each(|orbit| {
         commands.entity(orbit).clear();
+    });
+
+    habitable_zone.iter().for_each(|hz| {
+        commands.entity(hz).clear();
+    });
+}
+
+pub fn spawn_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut materials: (
+        ResMut<Assets<ColorMaterial>>,
+        ResMut<Assets<RadialGradientMaterial>>,
+    ),
+    system: Res<System>,
+    time: Res<WorldTime>,
+) {
+    spawn_system_state(
+        &mut commands,
+        &mut meshes,
+        &mut buffers,
+        &mut materials,
+        SystemFrame::new(&system, &system.state_at(time.elapsed_time)),
+        None,
+    );
+}
+
+pub fn spawn_habitable_zone(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut materials: ResMut<Assets<RadialGradientMaterial>>,
+    camera: Query<(&OrthographicProjection, &MainCamera), With<MainCamera>>,
+    bodies: Query<&Body>,
+) {
+
+    bodies.iter().filter(|body| body.spec.luminosity != Luminosity::ZERO).for_each(|body| {
+        let hz = globe_rs::HabitableZone::from(&body.spec);
+        let transform = Transform::from_translation(body.position.with_z(-1.));
+    
+        let inner_radius = hz.inner_edge.as_km() as f32;
+        let outer_radius = hz.outer_edge.as_km() as f32;
+        let quarter = (outer_radius - inner_radius) / 4.;
+
+        let (projection, camera) = camera.single();
+        let transparency = f32::min(0.1, projection.scale / camera.initial_scale * 0.1);
+    
+        commands.spawn((    
+            MaterialMesh2dBundle {
+                mesh: Mesh2dHandle(meshes.add(shape::annulus_mesh(inner_radius, outer_radius))),
+                transform,
+                material: materials.add(
+                    RadialGradientMaterialBuilder::new(&mut buffers)
+                        .with_center(transform.translation)
+                        .with_segment(color::SPRING_GREEN.with_alpha(0.), inner_radius)
+                        .with_segment(color::SPRING_GREEN.with_alpha(transparency), inner_radius + quarter)
+                        .with_segment(color::SPRING_GREEN.with_alpha(transparency), inner_radius + 2.*quarter)
+                        .with_segment(color::SPRING_GREEN.with_alpha(0.), outer_radius)
+                        .build(),
+                ),
+                ..default()
+            },
+            HabitableZone,
+        ));
     });
 }
 
@@ -137,12 +175,9 @@ fn spawn_system_state(
         ResMut<Assets<ColorMaterial>>,
         ResMut<Assets<RadialGradientMaterial>>,
     ),
-    camera: &mut Transform,
-    subject: &mut ResMut<Subject>,
-    current_frame: SystemFrame,
+    current_frame: SystemFrame, 
     previous_frame: Option<&SystemFrame>,
 ) {
-    update_camera(camera, subject, &current_frame);
     spawn_body(commands, meshes, &mut materials.0, &current_frame);
     spawn_orbit(
         commands,
@@ -165,13 +200,11 @@ fn spawn_system_state(
                 meshes,
                 buffers,
                 materials,
-                camera,
-                subject,
                 frame,
                 Some(&current_frame),
             )
         });
-}
+}   
 
 fn spawn_body(
     commands: &mut Commands,
@@ -191,10 +224,17 @@ fn spawn_body(
                 frame.system.primary.radius.as_km() as f32
             ))),
             transform,
-            material: materials.add(color::PERSIAN_ORANGE),
+            material: if frame.system.primary.luminosity == Luminosity::ZERO {
+                materials.add(color::KHAKI)     
+            } else {
+                materials.add(color::PERSIAN_ORANGE)
+            },
             ..default()
         },
-        Body(frame.system.primary.clone()),
+        Body{
+            spec: frame.system.primary.clone(),
+            position: transform.translation,
+        },
     ));
 }
 
@@ -240,16 +280,4 @@ fn spawn_orbit(
         },
         Orbit,
     ));
-}
-
-fn update_camera(camera: &mut Transform, subject: &mut Subject, current_frame: &SystemFrame) {
-    if subject
-        .name
-        .as_ref()
-        .map(|name| name == &current_frame.system.primary.name)
-        .unwrap_or_default()
-    {
-        camera.translation.x = current_frame.state.position.x() as f32;
-        camera.translation.y = current_frame.state.position.y() as f32;
-    }
 }

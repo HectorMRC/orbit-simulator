@@ -52,8 +52,8 @@ pub struct Rotation {
 
 impl Transform for Rotation {
     fn transform(&self, point: Coords) -> Coords {
-        let sin_theta = f64::from(self.theta).sin();
-        let cos_theta = f64::from(self.theta).cos();
+        let sin_theta = self.theta.as_f64().sin();
+        let cos_theta = self.theta.as_f64().cos();
         let sub_1_cos_theta = 1. - cos_theta;
 
         let x = self.axis.x();
