@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use alvidir::name::Name;
 use bevy::prelude::*;
-use globe_render::{Globe2DPlugin, system::System};
+use globe_render::{system::System, Globe2DPlugin};
 use globe_rs::{Body, Distance, Frequency, Luminosity, Mass};
 
 fn main() {
@@ -12,7 +12,7 @@ fn main() {
             radius: Distance::km(696_340.),
             rotation: Frequency::hz(4.2866941e-7),
             mass: Mass::kg(1.9891e30),
-            luminosity: Luminosity::SUN
+            luminosity: Luminosity::SUN,
         },
         distance: Distance::ZERO,
         secondary: vec![

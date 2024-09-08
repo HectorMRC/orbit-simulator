@@ -27,7 +27,9 @@ mod luminosity;
 pub use luminosity::*;
 
 /// A [f64] that is always positive.
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Default, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize,
+)]
 struct PositiveFloat(f64);
 
 impl From<f64> for PositiveFloat {
@@ -41,6 +43,12 @@ impl Eq for PositiveFloat {}
 impl Ord for PositiveFloat {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.0.total_cmp(&other.0)
+    }
+}
+
+impl PartialOrd for PositiveFloat {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 

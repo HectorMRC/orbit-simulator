@@ -203,7 +203,6 @@ mod tests {
         .into_iter()
         .for_each(|test| {
             let from = Coords::from(test.input);
-            let from = from;
             let point = from;
             assert_eq!(
                 point, test.output,

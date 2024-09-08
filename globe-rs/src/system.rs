@@ -4,7 +4,9 @@ use alvidir::name::Name;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    cartesian::{shape::Arc, Coords}, orbit::Orbit, Distance, Frequency, Luminosity, Mass, Radiant
+    cartesian::{shape::Arc, Coords},
+    orbit::Orbit,
+    Distance, Frequency, Luminosity, Mass, Radiant,
 };
 
 /// An arbitrary spherical body.
@@ -22,7 +24,7 @@ pub struct Body {
     pub luminosity: Luminosity,
 }
 
-/// Describes the habitable zone around a body. 
+/// Describes the habitable zone around a body.
 pub struct HabitableZone {
     pub inner_edge: Distance,
     pub outer_edge: Distance,
@@ -34,7 +36,7 @@ impl From<&Body> for HabitableZone {
 
         Self {
             inner_edge: Distance::ASTRONOMICAL_UNIT * (sun_relative.as_watts() / 1.1).sqrt(),
-            outer_edge: Distance::ASTRONOMICAL_UNIT * (sun_relative.as_watts() / 0.53).sqrt()
+            outer_edge: Distance::ASTRONOMICAL_UNIT * (sun_relative.as_watts() / 0.53).sqrt(),
         }
     }
 }

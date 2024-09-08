@@ -12,7 +12,7 @@ impl Mul<f64> for Luminosity {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        Self((self.0.0 * rhs).into())
+        Self((self.0 .0 * rhs).into())
     }
 }
 
@@ -20,7 +20,7 @@ impl Div<f64> for Luminosity {
     type Output = Self;
 
     fn div(self, rhs: f64) -> Self::Output {
-        Self((self.0.0 / rhs).into())
+        Self((self.0 .0 / rhs).into())
     }
 }
 
@@ -28,7 +28,7 @@ impl Div for Luminosity {
     type Output = Luminosity;
 
     fn div(self, rhs: Self) -> Self::Output {
-        Self((self.0.0 / rhs.0.0).into())
+        Self((self.0 .0 / rhs.0 .0).into())
     }
 }
 
@@ -41,6 +41,6 @@ impl Luminosity {
     }
 
     pub fn as_watts(&self) -> f64 {
-        self.0.0
+        self.0 .0
     }
 }

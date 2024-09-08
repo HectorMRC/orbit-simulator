@@ -14,6 +14,6 @@ impl Mass {
 
     /// Returns a [f64] representing the mass in kilograms.
     pub fn as_kg(&self) -> f64 {
-        self.0.0
+        self.0 .0
     }
 }

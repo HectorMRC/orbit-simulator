@@ -4,7 +4,8 @@
 use bevy::color::Color;
 
 /// Hexa RGB: #31E981
-pub const SPRING_GREEN: Color = Color::srgb(0.19215686274509805, 0.9137254901960784, 0.5058823529411764);
+pub const SPRING_GREEN: Color =
+    Color::srgb(0.19215686274509805, 0.9137254901960784, 0.5058823529411764);
 
 /// Hexa RGB: #e79356
 pub const PERSIAN_ORANGE: Color = Color::srgb(0.905_882_36, 0.576_470_6, 0.337_254_9);

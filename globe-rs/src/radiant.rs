@@ -39,7 +39,7 @@ impl Radiant {
 
     /// Returns the amount of radiants as a [f64].
     pub fn as_f64(&self) -> f64 {
-        self.0.0
+        self.0 .0
     }
 }
 

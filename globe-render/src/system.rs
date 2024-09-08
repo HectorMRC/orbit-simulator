@@ -17,7 +17,7 @@ use crate::{
 
 /// The orbital system.
 #[derive(Resource)]
-pub struct System (globe_rs::System);
+pub struct System(globe_rs::System);
 
 impl Deref for System {
     type Target = globe_rs::System;
@@ -35,7 +35,7 @@ impl From<globe_rs::System> for System {
 
 /// A body in the system.
 #[derive(Component)]
-pub struct Body{
+pub struct Body {
     pub spec: globe_rs::Body,
     pub position: Vec3,
 }
@@ -104,36 +104,44 @@ pub fn spawn_habitable_zone(
     camera: Query<(&OrthographicProjection, &MainCamera), With<MainCamera>>,
     bodies: Query<&Body>,
 ) {
+    bodies
+        .iter()
+        .filter(|body| body.spec.luminosity != Luminosity::ZERO)
+        .for_each(|body| {
+            let hz = globe_rs::HabitableZone::from(&body.spec);
+            let transform = Transform::from_translation(body.position.with_z(-1.));
 
-    bodies.iter().filter(|body| body.spec.luminosity != Luminosity::ZERO).for_each(|body| {
-        let hz = globe_rs::HabitableZone::from(&body.spec);
-        let transform = Transform::from_translation(body.position.with_z(-1.));
-    
-        let inner_radius = hz.inner_edge.as_km() as f32;
-        let outer_radius = hz.outer_edge.as_km() as f32;
-        let quarter = (outer_radius - inner_radius) / 4.;
+            let inner_radius = hz.inner_edge.as_km() as f32;
+            let outer_radius = hz.outer_edge.as_km() as f32;
+            let quarter = (outer_radius - inner_radius) / 4.;
 
-        let (projection, camera) = camera.single();
-        let transparency = f32::min(0.1, projection.scale / camera.initial_scale * 0.1);
-    
-        commands.spawn((    
-            MaterialMesh2dBundle {
-                mesh: Mesh2dHandle(meshes.add(shape::annulus_mesh(inner_radius, outer_radius))),
-                transform,
-                material: materials.add(
-                    RadialGradientMaterialBuilder::new(&mut buffers)
-                        .with_center(transform.translation)
-                        .with_segment(color::SPRING_GREEN.with_alpha(0.), inner_radius)
-                        .with_segment(color::SPRING_GREEN.with_alpha(transparency), inner_radius + quarter)
-                        .with_segment(color::SPRING_GREEN.with_alpha(transparency), inner_radius + 2.*quarter)
-                        .with_segment(color::SPRING_GREEN.with_alpha(0.), outer_radius)
-                        .build(),
-                ),
-                ..default()
-            },
-            HabitableZone,
-        ));
-    });
+            let (projection, camera) = camera.single();
+            let transparency = f32::min(0.1, projection.scale / camera.initial_scale * 0.1);
+
+            commands.spawn((
+                MaterialMesh2dBundle {
+                    mesh: Mesh2dHandle(meshes.add(shape::annulus_mesh(inner_radius, outer_radius))),
+                    transform,
+                    material: materials.add(
+                        RadialGradientMaterialBuilder::new(&mut buffers)
+                            .with_center(transform.translation)
+                            .with_segment(color::SPRING_GREEN.with_alpha(0.), inner_radius)
+                            .with_segment(
+                                color::SPRING_GREEN.with_alpha(transparency),
+                                inner_radius + quarter,
+                            )
+                            .with_segment(
+                                color::SPRING_GREEN.with_alpha(transparency),
+                                inner_radius + 2. * quarter,
+                            )
+                            .with_segment(color::SPRING_GREEN.with_alpha(0.), outer_radius)
+                            .build(),
+                    ),
+                    ..default()
+                },
+                HabitableZone,
+            ));
+        });
 }
 
 struct SystemFrame<'a> {
@@ -146,7 +154,7 @@ impl<'a> SystemFrame<'a> {
     fn new(system: &'a globe_rs::System, state: &'a SystemState) -> Self {
         SystemFrame {
             min_interorbit_distance: Self::min_interorbit_distance(system),
-            system: &system,
+            system,
             state,
         }
     }
@@ -175,7 +183,7 @@ fn spawn_system_state(
         ResMut<Assets<ColorMaterial>>,
         ResMut<Assets<RadialGradientMaterial>>,
     ),
-    current_frame: SystemFrame, 
+    current_frame: SystemFrame,
     previous_frame: Option<&SystemFrame>,
 ) {
     spawn_body(commands, meshes, &mut materials.0, &current_frame);
@@ -204,7 +212,7 @@ fn spawn_system_state(
                 Some(&current_frame),
             )
         });
-}   
+}
 
 fn spawn_body(
     commands: &mut Commands,
@@ -225,13 +233,13 @@ fn spawn_body(
             ))),
             transform,
             material: if frame.system.primary.luminosity == Luminosity::ZERO {
-                materials.add(color::KHAKI)     
+                materials.add(color::KHAKI)
             } else {
                 materials.add(color::PERSIAN_ORANGE)
             },
             ..default()
         },
-        Body{
+        Body {
             spec: frame.system.primary.clone(),
             position: transform.translation,
         },
