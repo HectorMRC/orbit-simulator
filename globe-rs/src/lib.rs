@@ -27,9 +27,7 @@ mod luminosity;
 pub use luminosity::*;
 
 /// A [f64] that is always positive.
-#[derive(
-    Debug, Default, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 struct PositiveFloat(f64);
 
 impl From<f64> for PositiveFloat {

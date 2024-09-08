@@ -28,9 +28,12 @@ impl Plugin for Globe2DPlugin {
                 Update,
                 (
                     system::clear_all,
-                    system::spawn_system,
-                    system::spawn_habitable_zone,
-                    subject::focus,
+                    system::spawn_bodies,
+                    (
+                        system::spawn_orbits,
+                        system::spawn_habitable_zone,
+                        subject::focus,
+                    ),
                 )
                     .chain(),
             )

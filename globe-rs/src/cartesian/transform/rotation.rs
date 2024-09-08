@@ -173,7 +173,7 @@ mod tests {
 
             rotated
                 .into_iter()
-                .zip(test.output.into_iter())
+                .zip(&test.output)
                 .for_each(|(&got, &want)| {
                     assert!(
                         approx_eq(got, want, ABS_ERROR),

@@ -1,4 +1,4 @@
-use std::{cmp::min, ops::Deref};
+use std::ops::Deref;
 
 use bevy::{
     prelude::*,
@@ -53,8 +53,12 @@ impl Deref for Body {
 pub struct HabitableZone;
 
 /// An orbit in the system.
-#[derive(Component)]
-pub struct Orbit;
+#[derive(Component, Clone, Copy)]
+pub struct Orbit {
+    pub center: Vec3,
+    pub radius: Distance,
+    pub shadow: Distance,
+}
 
 pub fn clear_all(
     mut commands: Commands,
@@ -75,25 +79,123 @@ pub fn clear_all(
     });
 }
 
-pub fn spawn_system(
+pub fn spawn_bodies(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
-    mut materials: (
-        ResMut<Assets<ColorMaterial>>,
-        ResMut<Assets<RadialGradientMaterial>>,
-    ),
+    mut materials: ResMut<Assets<ColorMaterial>>,
     system: Res<System>,
     time: Res<WorldTime>,
 ) {
-    spawn_system_state(
+    fn spawn_bodies_immersion(
+        commands: &mut Commands,
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<ColorMaterial>,
+        system: &globe_rs::System,
+        state: SystemState,
+        orbit: Option<Orbit>,
+    ) {
+        let transform =
+            Transform::from_xyz(state.position.x() as f32, state.position.y() as f32, 0.);
+
+        let material = MaterialMesh2dBundle {
+            mesh: Mesh2dHandle(
+                meshes.add(shape::circle_mesh(system.primary.radius.as_km() as f32)),
+            ),
+            transform,
+            material: if system.primary.luminosity == Luminosity::ZERO {
+                materials.add(color::KHAKI)
+            } else {
+                materials.add(color::PERSIAN_ORANGE)
+            },
+            ..default()
+        };
+
+        let body = Body {
+            spec: system.primary.clone(),
+            position: transform.translation,
+        };
+
+        if let Some(orbit) = orbit {
+            commands.spawn((material, body, orbit));
+        } else {
+            commands.spawn((material, body));
+        }
+
+        let min_interorbit_distance =
+            system
+                .secondary
+                .iter()
+                .enumerate()
+                .fold(system.radius(), |min, (index, secondary)| {
+                    let diff = index
+                        .checked_sub(1)
+                        .and_then(|index| system.secondary.get(index))
+                        .map(|previous| secondary.distance.diff(previous.distance))
+                        .unwrap_or(system.secondary[0].distance);
+
+                    core::cmp::min(min, diff)
+                });
+
+        system
+            .secondary
+            .iter()
+            .zip(state.secondary)
+            .for_each(|(subsystem, substate)| {
+                let orbit = Orbit {
+                    center: transform.translation,
+                    radius: (system.primary.radius + subsystem.distance + subsystem.primary.radius),
+                    shadow: min_interorbit_distance / 10.,
+                };
+
+                spawn_bodies_immersion(
+                    commands,
+                    meshes,
+                    materials,
+                    subsystem,
+                    substate,
+                    Some(orbit),
+                )
+            });
+    }
+
+    spawn_bodies_immersion(
         &mut commands,
         &mut meshes,
-        &mut buffers,
         &mut materials,
-        SystemFrame::new(&system, &system.state_at(time.elapsed_time)),
+        &system,
+        system.state_at(time.elapsed_time),
         None,
     );
+}
+
+pub fn spawn_orbits(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut materials: ResMut<Assets<RadialGradientMaterial>>,
+    orbits: Query<&Orbit, With<Orbit>>,
+) {
+    orbits.iter().for_each(|orbit| {
+        let orbit_radius = orbit.radius.as_km() as f32;
+        let shadow_radius = (orbit.radius + orbit.shadow).as_km() as f32;
+
+        commands.spawn((
+            MaterialMesh2dBundle {
+                mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(shadow_radius))),
+                transform: Transform::from_translation(orbit.center.with_z(orbit_radius / -1000.)),
+                material: materials.add(
+                    RadialGradientMaterialBuilder::new(&mut buffers)
+                        .with_center(orbit.center)
+                        .with_segment(color::EERIE_BLACK, orbit_radius)
+                        .with_segment(color::NIGHT, orbit_radius)
+                        .with_segment(color::NIGHT.with_alpha(0.), shadow_radius)
+                        .build(),
+                ),
+                ..default()
+            },
+            *orbit,
+        ));
+    });
 }
 
 pub fn spawn_habitable_zone(
@@ -142,150 +244,4 @@ pub fn spawn_habitable_zone(
                 HabitableZone,
             ));
         });
-}
-
-struct SystemFrame<'a> {
-    min_interorbit_distance: Distance,
-    system: &'a globe_rs::System,
-    state: &'a SystemState,
-}
-
-impl<'a> SystemFrame<'a> {
-    fn new(system: &'a globe_rs::System, state: &'a SystemState) -> Self {
-        SystemFrame {
-            min_interorbit_distance: Self::min_interorbit_distance(system),
-            system,
-            state,
-        }
-    }
-
-    fn min_interorbit_distance(system: &'a globe_rs::System) -> Distance {
-        system
-            .secondary
-            .iter()
-            .enumerate()
-            .fold(Distance::ZERO, |diff, (index, secondary)| {
-                if index == 0 {
-                    return secondary.distance;
-                }
-
-                let previous = system.secondary[index - 1].distance;
-                min(diff, secondary.distance.diff(previous))
-            })
-    }
-}
-
-fn spawn_system_state(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    buffers: &mut ResMut<Assets<ShaderStorageBuffer>>,
-    materials: &mut (
-        ResMut<Assets<ColorMaterial>>,
-        ResMut<Assets<RadialGradientMaterial>>,
-    ),
-    current_frame: SystemFrame,
-    previous_frame: Option<&SystemFrame>,
-) {
-    spawn_body(commands, meshes, &mut materials.0, &current_frame);
-    spawn_orbit(
-        commands,
-        meshes,
-        buffers,
-        &mut materials.1,
-        &current_frame,
-        previous_frame,
-    );
-
-    current_frame
-        .system
-        .secondary
-        .iter()
-        .zip(current_frame.state.secondary.iter())
-        .map(|(system, state)| SystemFrame::new(system, state))
-        .for_each(|frame| {
-            spawn_system_state(
-                commands,
-                meshes,
-                buffers,
-                materials,
-                frame,
-                Some(&current_frame),
-            )
-        });
-}
-
-fn spawn_body(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<ColorMaterial>,
-    frame: &SystemFrame,
-) {
-    let transform = Transform::from_xyz(
-        frame.state.position.x() as f32,
-        frame.state.position.y() as f32,
-        0.,
-    );
-
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(
-                frame.system.primary.radius.as_km() as f32
-            ))),
-            transform,
-            material: if frame.system.primary.luminosity == Luminosity::ZERO {
-                materials.add(color::KHAKI)
-            } else {
-                materials.add(color::PERSIAN_ORANGE)
-            },
-            ..default()
-        },
-        Body {
-            spec: frame.system.primary.clone(),
-            position: transform.translation,
-        },
-    ));
-}
-
-fn spawn_orbit(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    buffers: &mut Assets<ShaderStorageBuffer>,
-    materials: &mut Assets<RadialGradientMaterial>,
-    current_frame: &SystemFrame,
-    previous_frame: Option<&SystemFrame>,
-) {
-    let Some(previous_frame) = previous_frame else {
-        return;
-    };
-
-    let orbit_radius = (previous_frame.system.primary.radius
-        + current_frame.system.distance
-        + current_frame.system.primary.radius)
-        .as_km() as f32;
-
-    let shadow_radius =
-        orbit_radius + (previous_frame.min_interorbit_distance / 10.).as_km() as f32;
-
-    let transform = Transform::from_xyz(
-        previous_frame.state.position.x() as f32,
-        previous_frame.state.position.y() as f32,
-        -1. * current_frame.system.distance.as_km() as f32,
-    );
-
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(shadow_radius))),
-            transform,
-            material: materials.add(
-                RadialGradientMaterialBuilder::new(buffers)
-                    .with_center(transform.translation)
-                    .with_segment(color::EERIE_BLACK, orbit_radius)
-                    .with_segment(color::NIGHT, orbit_radius)
-                    .with_segment(color::NIGHT.with_alpha(0.), shadow_radius)
-                    .build(),
-            ),
-            ..default()
-        },
-        Orbit,
-    ));
 }
