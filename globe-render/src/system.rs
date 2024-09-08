@@ -1,11 +1,11 @@
-use std::cmp::min;
+use std::{cmp::min, ops::Deref};
 
 use bevy::{
     prelude::*,
     render::storage::ShaderStorageBuffer,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
-use globe_rs::{Distance, System, SystemState};
+use globe_rs::{Distance, SystemState};
 
 use crate::{
     camera::MainCamera,
@@ -18,13 +18,39 @@ use crate::{
 
 /// The configuration of the game.
 #[derive(Resource)]
-pub struct Config {
-    pub system: globe_rs::System,
+pub struct System (globe_rs::System);
+
+impl Deref for System {
+    type Target = globe_rs::System;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<globe_rs::System> for System {
+    fn from(value: globe_rs::System) -> Self {
+        Self(value)
+    }
 }
 
 /// A body in the system.
 #[derive(Component)]
-pub struct Body(pub globe_rs::Body);
+pub struct Body(globe_rs::Body);
+
+impl Deref for Body {
+    type Target = globe_rs::Body;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<globe_rs::Body> for Body {
+    fn from(value: globe_rs::Body) -> Self {
+        Self(value)
+    }
+}
 
 /// An orbit in the system.
 #[derive(Component)]
@@ -41,7 +67,7 @@ pub fn spawn(
     ),
     mut camera: Query<&mut Transform, With<MainCamera>>,
     mut subject: ResMut<Subject>,
-    config: Res<Config>,
+    system: Res<System>,
     time: Res<WorldTime>,
 ) {
     let mut camera = camera.single_mut();
@@ -53,7 +79,7 @@ pub fn spawn(
         &mut materials,
         &mut camera,
         &mut subject,
-        SystemFrame::new(&config.system, &config.system.state_at(time.elapsed_time)),
+        SystemFrame::new(&system, &system.state_at(time.elapsed_time)),
         None,
     );
 }
@@ -74,12 +100,12 @@ pub fn clear(
 
 struct SystemFrame<'a> {
     min_interorbit_distance: Distance,
-    system: &'a System,
+    system: &'a globe_rs::System,
     state: &'a SystemState,
 }
 
 impl<'a> SystemFrame<'a> {
-    fn new(system: &'a System, state: &'a SystemState) -> Self {
+    fn new(system: &'a globe_rs::System, state: &'a SystemState) -> Self {
         SystemFrame {
             min_interorbit_distance: Self::min_interorbit_distance(system),
             system: &system,
@@ -87,7 +113,7 @@ impl<'a> SystemFrame<'a> {
         }
     }
 
-    fn min_interorbit_distance(system: &'a System) -> Distance {
+    fn min_interorbit_distance(system: &'a globe_rs::System) -> Distance {
         system
             .secondary
             .iter()

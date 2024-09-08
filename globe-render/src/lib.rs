@@ -3,7 +3,7 @@ use material::RadialGradientMaterial;
 
 mod camera;
 mod color;
-pub mod config;
+pub mod system;
 mod cursor;
 mod material;
 mod scroll;
@@ -24,7 +24,7 @@ impl Plugin for Globe2DPlugin {
             .init_resource::<time::WorldTime>()
             .add_systems(Startup, camera::spawn)
             .add_systems(PreUpdate, time::update_time)
-            .add_systems(Update, (config::clear, config::spawn).chain())
+            .add_systems(Update, (system::clear, system::spawn).chain())
             .add_systems(Update, zoom::logarithmic)
             .add_systems(Update, scroll::linear)
             .add_systems(Update, cursor::into_world_coords)

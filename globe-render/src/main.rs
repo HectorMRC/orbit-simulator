@@ -2,17 +2,10 @@ use std::str::FromStr;
 
 use alvidir::name::Name;
 use bevy::prelude::*;
-use globe_render::{config, Globe2DPlugin};
+use globe_render::{Globe2DPlugin, system::System};
 use globe_rs::{Body, Distance, Frequency, Mass};
 
 fn main() {
-    App::new()
-        .insert_resource(load_storage())
-        .add_plugins(Globe2DPlugin)
-        .run();
-}
-
-fn load_storage() -> config::Config {
     let system = globe_rs::System {
         primary: Body {
             name: Name::from_str("Sun").unwrap(),
@@ -64,5 +57,8 @@ fn load_storage() -> config::Config {
         ],
     };
 
-    config::Config { system }
+    App::new()
+        .insert_resource(System::from(system))
+        .add_plugins(Globe2DPlugin)
+        .run();
 }

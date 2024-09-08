@@ -1,7 +1,7 @@
 use alvidir::name::Name;
 use bevy::{input::mouse::MouseButtonInput, prelude::*};
 
-use crate::{config::Body, cursor::Cursor};
+use crate::{system::Body, cursor::Cursor};
 
 #[derive(Resource, Default)]
 pub struct Subject {
@@ -22,12 +22,12 @@ pub fn select_on_click(
         if let Some(body) = bodies
             .iter()
             .filter(|(body, transform)| {
-                transform.translation.distance(cursor.position) <= body.0.radius.as_km() as f32
+                transform.translation.distance(cursor.position) <= body.radius.as_km() as f32
             })
             .map(|(body, _)| body)
             .next()
         {
-            subject.name = Some(body.0.name.clone());
+            subject.name = Some(body.name.clone());
         };
     }
 }
