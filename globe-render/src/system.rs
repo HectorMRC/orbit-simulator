@@ -99,8 +99,8 @@ pub fn spawn_bodies(
         orbit: Option<Orbit>,
     ) {
         let transform = Transform::from_xyz(
-            state.position.x() as f32,
             state.position.y() as f32,
+            -state.position.x() as f32,
             BODY_Z_PLANE,
         );
 
