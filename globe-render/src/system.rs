@@ -3,7 +3,7 @@ use std::ops::Deref;
 use bevy::{
     prelude::*,
     render::storage::ShaderStorageBuffer,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    sprite::{AlphaMode2d, MaterialMesh2dBundle, Mesh2dHandle},
 };
 use globe_rs::{Distance, Luminosity, SystemState};
 
@@ -14,6 +14,10 @@ use crate::{
     shape,
     time::WorldTime,
 };
+
+const BODY_Z_PLANE: f32 = 0.;
+const HABITABLE_ZONE_Z_PLANE: f32 = -1.;
+const ORBIT_Z_PLANE: f32 = -2.;
 
 /// The orbital system.
 #[derive(Resource)]
@@ -94,19 +98,26 @@ pub fn spawn_bodies(
         state: SystemState,
         orbit: Option<Orbit>,
     ) {
-        let transform =
-            Transform::from_xyz(state.position.x() as f32, state.position.y() as f32, 0.);
+        let transform = Transform::from_xyz(
+            state.position.x() as f32,
+            state.position.y() as f32,
+            BODY_Z_PLANE,
+        );
 
         let material = MaterialMesh2dBundle {
             mesh: Mesh2dHandle(
                 meshes.add(shape::circle_mesh(system.primary.radius.as_km() as f32)),
             ),
             transform,
-            material: if system.primary.luminosity == Luminosity::ZERO {
-                materials.add(color::KHAKI)
-            } else {
-                materials.add(color::PERSIAN_ORANGE)
-            },
+            material: materials.add(ColorMaterial {
+                alpha_mode: AlphaMode2d::Blend,
+                color: if system.primary.luminosity == Luminosity::ZERO {
+                    color::KHAKI
+                } else {
+                    color::PERSIAN_ORANGE
+                },
+                ..Default::default()
+            }),
             ..default()
         };
 
@@ -173,29 +184,38 @@ pub fn spawn_orbits(
     mut meshes: ResMut<Assets<Mesh>>,
     mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
     mut materials: ResMut<Assets<RadialGradientMaterial>>,
-    orbits: Query<&Orbit, With<Orbit>>,
+    orbits: Query<&Orbit>,
 ) {
-    orbits.iter().for_each(|orbit| {
-        let orbit_radius = orbit.radius.as_km() as f32;
-        let shadow_radius = (orbit.radius + orbit.shadow).as_km() as f32;
+    let mut orbits: Vec<&Orbit> = orbits.iter().collect();
+    orbits.sort_by(|a, b| a.radius.cmp(&b.radius));
 
-        commands.spawn((
-            MaterialMesh2dBundle {
-                mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(shadow_radius))),
-                transform: Transform::from_translation(orbit.center.with_z(orbit_radius / -1000.)),
-                material: materials.add(
-                    RadialGradientMaterialBuilder::new(&mut buffers)
-                        .with_center(orbit.center)
-                        .with_segment(color::EERIE_BLACK, orbit_radius)
-                        .with_segment(color::NIGHT, orbit_radius)
-                        .with_segment(color::NIGHT.with_alpha(0.), shadow_radius)
-                        .build(),
-                ),
-                ..default()
-            },
-            *orbit,
-        ));
-    });
+    orbits
+        .into_iter()
+        .enumerate()
+        .map(|(index, orbit)| (index as f32, orbit))
+        .for_each(|(index, orbit)| {
+            let orbit_radius = orbit.radius.as_km() as f32;
+            let shadow_radius = (orbit.radius + orbit.shadow).as_km() as f32;
+
+            commands.spawn((
+                MaterialMesh2dBundle {
+                    mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(shadow_radius))),
+                    transform: Transform::from_translation(
+                        orbit.center.with_z(ORBIT_Z_PLANE - index),
+                    ),
+                    material: materials.add(
+                        RadialGradientMaterialBuilder::new(&mut buffers)
+                            .with_center(orbit.center)
+                            .with_segment(color::EERIE_BLACK, orbit_radius)
+                            .with_segment(color::NIGHT, orbit_radius)
+                            .with_segment(color::NIGHT.with_alpha(0.), shadow_radius)
+                            .build(),
+                    ),
+                    ..default()
+                },
+                *orbit,
+            ));
+        });
 }
 
 pub fn spawn_habitable_zone(
@@ -211,7 +231,8 @@ pub fn spawn_habitable_zone(
         .filter(|body| body.spec.luminosity != Luminosity::ZERO)
         .for_each(|body| {
             let hz = globe_rs::HabitableZone::from(&body.spec);
-            let transform = Transform::from_translation(body.position.with_z(-1.));
+            let transform =
+                Transform::from_translation(body.position.with_z(HABITABLE_ZONE_Z_PLANE));
 
             let inner_radius = hz.inner_edge.as_km() as f32;
             let outer_radius = hz.outer_edge.as_km() as f32;
@@ -245,3 +266,13 @@ pub fn spawn_habitable_zone(
             ));
         });
 }
+
+// fn update_bloom(
+//     mut camera: Query<(Entity, Option<&mut BloomSettings>), With<Camera>>,
+//     mut text: Query<&mut Text>,
+//     mut commands: Commands,
+//     keycode: Res<ButtonInput<KeyCode>>,
+//     time: Res<Time>,
+// ) {
+
+// }

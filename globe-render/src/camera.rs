@@ -20,6 +20,7 @@ pub fn spawn(mut commands: Commands, system: Res<System>, window: Query<&Window>
         Camera2dBundle {
             camera: Camera {
                 clear_color: ClearColorConfig::Custom(color::NIGHT),
+                hdr: true,
                 ..default()
             },
             projection: OrthographicProjection {
@@ -30,6 +31,7 @@ pub fn spawn(mut commands: Commands, system: Res<System>, window: Query<&Window>
             },
             ..default()
         },
+        // BloomSettings::NATURAL,
         MainCamera {
             initial_scale: scale,
         },
