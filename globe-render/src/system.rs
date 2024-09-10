@@ -207,7 +207,7 @@ pub fn spawn_orbits(
 
     let orbit_points: Vec<[f32; 3]> = orbits
         .into_iter()
-        .map(|(body, &orbit)| {
+        .flat_map(|(body, &orbit)| {
             let orbit_points: Vec<[f32; 3]> = Arc::default()
                 .with_center(orbit.center)
                 .with_start(body.position)
@@ -225,11 +225,9 @@ pub fn spawn_orbits(
             orbit_points
                 .iter()
                 .zip(next_points)
-                .map(|(&current, &next)| [current, next])
-                .flatten()
+                .flat_map(|(&current, &next)| [current, next])
                 .collect::<Vec<[f32; 3]>>()
         })
-        .flatten()
         .collect();
 
     let orbit_mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::RENDER_WORLD)
