@@ -20,9 +20,10 @@ impl Plugin for Globe2DPlugin {
         app.add_plugins(DefaultPlugins)
             .add_plugins(Material2dPlugin::<RadialGradientMaterial>::default())
             .init_resource::<cursor::Cursor>()
-            .init_resource::<subject::Subject>()
+            .init_resource::<subject::Subject>()    
             .init_resource::<time::WorldTime>()
             .add_systems(Startup, camera::spawn)
+            .add_systems(Startup, system::spawn_heliosphere)
             .add_systems(PreUpdate, time::update_time)
             .add_systems(
                 Update,

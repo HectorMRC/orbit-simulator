@@ -9,11 +9,11 @@ use bevy::{
 };
 use globe_rs::{
     cartesian::{
-        shape::{Arc, Sample},
+        shape::{Arc, Sample},   
         Coords,
     },
     Luminosity, Radiant, SystemState,
-};
+};  
 
 use crate::{
     camera::MainCamera,
@@ -23,8 +23,9 @@ use crate::{
     time::WorldTime,
 };
 
-const HABITABLE_ZONE_Z_PLANE: f32 = -1.;
-const ORBIT_Z_PLANE: f32 = -2.;
+const ORBIT_Z_PLANE: f32 = -1.;
+const HABITABLE_ZONE_Z_PLANE: f32 = -2.;
+const HELIOSPHERE_Z_PLANE: f32 = -3.;
 
 /// The orbital system.
 #[derive(Resource)]
@@ -238,7 +239,7 @@ pub fn spawn_orbits(
             mesh: Mesh2dHandle(meshes.add(orbit_mesh)),
             transform: Transform::from_xyz(0., 0., ORBIT_Z_PLANE),
             material: materials.add(ColorMaterial {
-                color: color::BATTLESHIP_GRAY,
+                color: color::NIGHT,
                 alpha_mode: AlphaMode2d::Blend,
                 ..Default::default()
             }),
@@ -298,4 +299,30 @@ pub fn spawn_habitable_zone(
                 HabitableZone,
             ));
         });
+}
+
+pub fn spawn_heliosphere(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut materials: ResMut<Assets<RadialGradientMaterial>>,
+    system: Res<System>,    
+) {
+    let system_radius = system.radius().as_km() as f32;
+    let heliosphere_radius = system_radius * 1.1;
+
+    commands.spawn(
+        MaterialMesh2dBundle {
+        mesh: Mesh2dHandle(
+            meshes.add(shape::circle_mesh(heliosphere_radius)),
+        ),
+        transform:  Transform::from_xyz(0., 0., HELIOSPHERE_Z_PLANE),
+        material: materials.add(
+            RadialGradientMaterialBuilder::new(&mut buffers)
+                .with_segment(color::EERIE_BLACK, system_radius)
+                .with_segment(color::NIGHT, heliosphere_radius)
+                .build()
+        ),
+        ..default()
+    });
 }
