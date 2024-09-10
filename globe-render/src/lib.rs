@@ -32,7 +32,7 @@ impl Plugin for Globe2DPlugin {
                     (
                         system::spawn_orbits,
                         system::spawn_habitable_zone,
-                        subject::focus,
+                        subject::update_camera,
                     ),
                 )
                     .chain(),

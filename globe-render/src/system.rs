@@ -2,10 +2,18 @@ use std::ops::Deref;
 
 use bevy::{
     prelude::*,
-    render::storage::ShaderStorageBuffer,
+    render::{
+        mesh::PrimitiveTopology, render_asset::RenderAssetUsages, storage::ShaderStorageBuffer,
+    },
     sprite::{AlphaMode2d, MaterialMesh2dBundle, Mesh2dHandle},
 };
-use globe_rs::{Distance, Luminosity, SystemState};
+use globe_rs::{
+    cartesian::{
+        shape::{Arc, Sample},
+        Coords,
+    },
+    Luminosity, Radiant, SystemState,
+};
 
 use crate::{
     camera::MainCamera,
@@ -15,7 +23,6 @@ use crate::{
     time::WorldTime,
 };
 
-const BODY_Z_PLANE: f32 = 0.;
 const HABITABLE_ZONE_Z_PLANE: f32 = -1.;
 const ORBIT_Z_PLANE: f32 = -2.;
 
@@ -41,7 +48,7 @@ impl From<globe_rs::System> for System {
 #[derive(Component)]
 pub struct Body {
     pub spec: globe_rs::Body,
-    pub position: Vec3,
+    pub position: Coords,
 }
 
 impl Deref for Body {
@@ -57,11 +64,9 @@ impl Deref for Body {
 pub struct HabitableZone;
 
 /// An orbit in the system.
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Default, Clone, Copy)]
 pub struct Orbit {
-    pub center: Vec3,
-    pub radius: Distance,
-    pub shadow: Distance,
+    pub center: Coords,
 }
 
 pub fn clear_all(
@@ -99,9 +104,9 @@ pub fn spawn_bodies(
         orbit: Option<Orbit>,
     ) {
         let transform = Transform::from_xyz(
+            state.position.x() as f32,
             state.position.y() as f32,
-            -state.position.x() as f32,
-            BODY_Z_PLANE,
+            state.position.z() as f32,
         );
 
         let material = MaterialMesh2dBundle {
@@ -123,7 +128,7 @@ pub fn spawn_bodies(
 
         let body = Body {
             spec: system.primary.clone(),
-            position: transform.translation,
+            position: state.position,
         };
 
         if let Some(orbit) = orbit {
@@ -132,30 +137,13 @@ pub fn spawn_bodies(
             commands.spawn((material, body));
         }
 
-        let min_interorbit_distance =
-            system
-                .secondary
-                .iter()
-                .enumerate()
-                .fold(system.radius(), |min, (index, secondary)| {
-                    let diff = index
-                        .checked_sub(1)
-                        .and_then(|index| system.secondary.get(index))
-                        .map(|previous| secondary.distance.diff(previous.distance))
-                        .unwrap_or(system.secondary[0].distance);
-
-                    core::cmp::min(min, diff)
-                });
-
         system
             .secondary
             .iter()
             .zip(state.secondary)
             .for_each(|(subsystem, substate)| {
                 let orbit = Orbit {
-                    center: transform.translation,
-                    radius: (system.primary.radius + subsystem.distance + subsystem.primary.radius),
-                    shadow: min_interorbit_distance / 10.,
+                    center: state.position,
                 };
 
                 spawn_bodies_immersion(
@@ -182,40 +170,84 @@ pub fn spawn_bodies(
 pub fn spawn_orbits(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
-    mut materials: ResMut<Assets<RadialGradientMaterial>>,
-    orbits: Query<&Orbit>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    orbits: Query<(&Body, &Orbit), With<Orbit>>,
 ) {
-    let mut orbits: Vec<&Orbit> = orbits.iter().collect();
-    orbits.sort_by(|a, b| a.radius.cmp(&b.radius));
+    // orbits.into_iter().for_each(|(body, &orbit)| {
+    //     let mut orbit_points: Vec<[f32; 3]> = Arc::default()
+    //         .with_center(orbit.center)
+    //         .with_start(body.position)
+    //         .with_axis(Coords::default().with_z(1.))
+    //         .with_theta(Radiant::TWO_PI)
+    //         .sample(255)
+    //         .points
+    //         .into_iter()
+    //         .map(|point| [point.x() as f32, point.y() as f32, point.z() as f32])
+    //         .collect();
 
-    orbits
+    //     // ensure the mesh is closed.
+    //     orbit_points.push(orbit_points[0]);
+
+    //     let orbit_mesh = Mesh::new(PrimitiveTopology::LineStrip, RenderAssetUsages::RENDER_WORLD)
+    //         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, orbit_points);
+
+    //     commands.spawn((
+    //         MaterialMesh2dBundle {
+    //             mesh: Mesh2dHandle(meshes.add(orbit_mesh)),
+    //             material: materials.add(ColorMaterial {
+    //                 color: Color::linear_rgb(0., 1., 0.),
+    //                 alpha_mode: AlphaMode2d::Blend,
+    //                 ..Default::default()
+    //             }),
+    //             ..default()
+    //         },
+    //         orbit,
+    //     ));
+    // });
+
+    let orbit_points: Vec<[f32; 3]> = orbits
         .into_iter()
-        .enumerate()
-        .map(|(index, orbit)| (index as f32, orbit))
-        .for_each(|(index, orbit)| {
-            let orbit_radius = orbit.radius.as_km() as f32;
-            let shadow_radius = (orbit.radius + orbit.shadow).as_km() as f32;
+        .map(|(body, &orbit)| {
+            let orbit_points: Vec<[f32; 3]> = Arc::default()
+                .with_center(orbit.center)
+                .with_start(body.position)
+                .with_axis(Coords::default().with_z(1.))
+                .with_theta(Radiant::TWO_PI)
+                .sample(255)
+                .points
+                .into_iter()
+                .map(|point| [point.x() as f32, point.y() as f32, point.z() as f32])
+                .collect();
 
-            commands.spawn((
-                MaterialMesh2dBundle {
-                    mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(shadow_radius))),
-                    transform: Transform::from_translation(
-                        orbit.center.with_z(ORBIT_Z_PLANE - index),
-                    ),
-                    material: materials.add(
-                        RadialGradientMaterialBuilder::new(&mut buffers)
-                            .with_center(orbit.center)
-                            .with_segment(color::EERIE_BLACK, orbit_radius)
-                            .with_segment(color::NIGHT, orbit_radius)
-                            .with_segment(color::NIGHT.with_alpha(0.), shadow_radius)
-                            .build(),
-                    ),
-                    ..default()
-                },
-                *orbit,
-            ));
-        });
+            let mut next_points = orbit_points.iter().cycle();
+            next_points.next();
+
+            orbit_points
+                .iter()
+                .zip(next_points)
+                .map(|(&current, &next)| [current, next])
+                .flatten()
+                .collect::<Vec<[f32; 3]>>()
+        })
+        .flatten()
+        .collect();
+
+    let orbit_mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::RENDER_WORLD)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, orbit_points);
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: Mesh2dHandle(meshes.add(orbit_mesh)),
+            transform: Transform::from_xyz(0., 0., ORBIT_Z_PLANE),
+            material: materials.add(ColorMaterial {
+                color: color::BATTLESHIP_GRAY,
+                alpha_mode: AlphaMode2d::Blend,
+                ..Default::default()
+            }),
+            ..default()
+        },
+        Orbit::default(),
+    ));
 }
 
 pub fn spawn_habitable_zone(
@@ -231,8 +263,11 @@ pub fn spawn_habitable_zone(
         .filter(|body| body.spec.luminosity != Luminosity::ZERO)
         .for_each(|body| {
             let hz = globe_rs::HabitableZone::from(&body.spec);
-            let transform =
-                Transform::from_translation(body.position.with_z(HABITABLE_ZONE_Z_PLANE));
+            let transform = Transform::from_xyz(
+                body.position.y() as f32,
+                -body.position.x() as f32,
+                HABITABLE_ZONE_Z_PLANE,
+            );
 
             let inner_radius = hz.inner_edge.as_km() as f32;
             let outer_radius = hz.outer_edge.as_km() as f32;
@@ -266,13 +301,3 @@ pub fn spawn_habitable_zone(
             ));
         });
 }
-
-// fn update_bloom(
-//     mut camera: Query<(Entity, Option<&mut BloomSettings>), With<Camera>>,
-//     mut text: Query<&mut Text>,
-//     mut commands: Commands,
-//     keycode: Res<ButtonInput<KeyCode>>,
-//     time: Res<Time>,
-// ) {
-
-// }

@@ -32,7 +32,7 @@ pub fn select_on_click(
     }
 }
 
-pub fn focus(
+pub fn update_camera(
     mut camera: Query<&mut Transform, With<MainCamera>>,
     bodies: Query<&Body>,
     subject: Res<Subject>,
@@ -44,7 +44,7 @@ pub fn focus(
     };
 
     if let Some(body) = bodies.iter().find(|body| &body.spec.name == subject) {
-        camera.translation.x = body.position.x;
-        camera.translation.y = body.position.y;
+        camera.translation.x = body.position.x() as f32;
+        camera.translation.y = body.position.y() as f32;
     }
 }
