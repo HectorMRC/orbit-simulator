@@ -77,7 +77,7 @@ impl System {
             if a < b {
                 (a, b) = (b, a);
             }
-            
+
             while b != 0. {
                 (a, b) = (b, a % b)
             }
@@ -90,7 +90,7 @@ impl System {
             let mut denominator = 1.;
             while (decimal * denominator).fract() != 0. {
                 denominator *= 10.;
-            } 
+            }
 
             let numerator = decimal * denominator;
             let gcd = gcd(numerator, denominator);
@@ -98,7 +98,7 @@ impl System {
         }
 
         todo!()
-     }
+    }
 }
 
 /// A description of an orbital system.

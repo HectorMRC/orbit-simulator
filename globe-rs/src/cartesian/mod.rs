@@ -1,6 +1,6 @@
 use std::{
     f64::consts::{FRAC_PI_2, PI},
-    ops::{Add, AddAssign, Neg},
+    ops::{Add, AddAssign, Div, Neg},
 };
 
 use nalgebra::{iter::MatrixIter, ArrayStorage, Const, Vector3};
@@ -54,6 +54,14 @@ impl Add for Coords {
 impl AddAssign for Coords {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
+    }
+}
+
+impl Div<f64> for Coords {
+    type Output = Coords;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        Self(self.0 / rhs)
     }
 }
 

@@ -3,6 +3,9 @@ use super::Coords;
 mod arc;
 pub use arc::*;
 
+mod ellipse;
+pub use ellipse::*;
+
 /// A succession of [Cartesian]s representing an arbitrary shape.
 #[derive(Default)]
 pub struct Shape {

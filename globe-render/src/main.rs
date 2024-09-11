@@ -55,7 +55,7 @@ fn main() {
                         mass: Mass::kg(7.34767309e22),
                         luminosity: Luminosity::ZERO,
                     },
-                    distance: Distance::km(384_400.),       
+                    distance: Distance::km(384_400.),
                     secondary: Default::default(),
                 }],
             },
