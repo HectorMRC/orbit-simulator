@@ -1,4 +1,4 @@
-use std::{arch::is_aarch64_feature_detected, time::Duration};
+use std::time::Duration;
 
 use alvidir::name::Name;
 use serde::{Deserialize, Serialize};

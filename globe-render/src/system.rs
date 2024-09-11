@@ -169,7 +169,7 @@ pub fn spawn_bodies(
                 let orbit = Orbit {
                     center: state.position,
                     radius: (system.primary.radius + subsystem.distance + subsystem.primary.radius),
-                    shadow: System::min_interorbit_distance(&system) / 10.,
+                    shadow: System::min_interorbit_distance(system) / 10.,
                 };
 
                 spawn_bodies_immersion(

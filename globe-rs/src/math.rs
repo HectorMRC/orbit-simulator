@@ -26,7 +26,7 @@ pub fn decimal_to_fraction(decimal: f64) -> (i64, i64) {
     let numerator = (decimal * denominator) as i64;
     let denominator = denominator as i64;
 
-    let gcd = integer_gcd(numerator, denominator as i64);
+    let gcd = integer_gcd(numerator, denominator);
     (numerator / gcd, denominator / gcd)
 }
 
@@ -55,11 +55,11 @@ mod tests {
                 output: (1, 2),
             },
             Test {
-                input: 0.444444444444444444444444444444444444444,
+                input: 0.444_444_444_444_444_4,
                 output: (4, 9),
             },
             Test {
-                input: 0.666666666666666666666666666666666666666,
+                input: 0.666_666_666_666_666_6,
                 output: (2, 3),
             },
             Test {
