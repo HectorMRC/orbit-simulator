@@ -26,6 +26,8 @@ pub use velocity::*;
 mod luminosity;
 pub use luminosity::*;
 
+mod math;
+
 /// A [f64] that is always positive.
 #[derive(Debug, Default, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 struct PositiveFloat(f64);

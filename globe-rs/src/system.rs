@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{arch::is_aarch64_feature_detected, time::Duration};
 
 use alvidir::name::Name;
 use serde::{Deserialize, Serialize};
@@ -71,9 +71,11 @@ impl System {
     }
 
     /// Returns the frequency of the system.
+    ///
+    /// The period from this frequency is the time it takes to the system to get into the same state.
     pub fn frequency(&self) -> Frequency {
         /// Returns the greatest common divisor of a and b.
-        fn gcd(mut a: f64, mut b: f64) -> f64 {
+        fn integer_gcd(mut a: f64, mut b: f64) -> f64 {
             if a < b {
                 (a, b) = (b, a);
             }
@@ -85,6 +87,11 @@ impl System {
             a
         }
 
+        /// Returns the least common multiple of a and b.
+        fn integer_lcd(a: f64, b: f64) -> f64 {
+            (a * b).abs() / integer_gcd(a, b)
+        }
+
         /// Returns the fraction that represents the given number.
         fn decimal_to_fraction(decimal: f64) -> (f64, f64) {
             let mut denominator = 1.;
@@ -93,11 +100,20 @@ impl System {
             }
 
             let numerator = decimal * denominator;
-            let gcd = gcd(numerator, denominator);
+            let gcd = integer_gcd(numerator, denominator);
             (numerator / gcd, denominator / gcd)
         }
 
-        todo!()
+        fn decimal_lcd(a: f64, b: f64) -> f64 {
+            let (an, ad) = decimal_to_fraction(a);
+            let (bn, bd) = decimal_to_fraction(b);
+
+            integer_lcd(an, bn) / integer_gcd(ad, bd)
+        }
+
+        self.secondary
+            .iter()
+            .fold(self.primary.rotation, |gcd, system| gcd)
     }
 }
 
