@@ -1,3 +1,5 @@
+use std::{ops::Div, time::Duration};
+
 use serde::{Deserialize, Serialize};
 
 use crate::PositiveFloat;
@@ -5,6 +7,14 @@ use crate::PositiveFloat;
 /// The frequency at which an specific event occurs per unit of time.
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Frequency(PositiveFloat);
+
+impl Div<Frequency> for f64 {
+    type Output = Duration;
+
+    fn div(self, rhs: Frequency) -> Self::Output {
+        Duration::from_secs_f64(self / rhs.as_hz())
+    }
+}
 
 impl Frequency {
     /// Returns a new frequency of hz hertz, which is the number of ocurrences per second.

@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, time::Duration};
+use std::time::Duration;
 
 use alvidir::name::Name;
 use serde::{Deserialize, Serialize};
@@ -66,13 +66,75 @@ impl System {
         self.secondary
             .iter()
             .map(|system| system.radius() + this_radius)
-            .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
+            .max()
             .unwrap_or(this_radius)
     }
 
-    /// Returns the total amount of subsystems in self.
-    pub fn depth(&self) -> usize {
-        self.secondary.iter().map(System::depth).sum()
+    /// Returns the frequency of the system.
+    pub fn frequency(&self) -> Frequency {
+        /// Returns the greatest common divisor of a and b.
+        fn gcd(mut a: f64, mut b: f64) -> f64 {
+            if a < b {
+                (a, b) = (b, a);
+            }
+            
+            while b != 0. {
+                (a, b) = (b, a % b)
+            }
+
+            a
+        }
+
+        /// Returns the fraction that represents the given number.
+        fn decimal_to_fraction(decimal: f64) -> (f64, f64) {
+            let mut denominator = 1.;
+            while (decimal * denominator).fract() != 0. {
+                denominator *= 10.;
+            } 
+
+            let numerator = decimal * denominator;
+            let gcd = gcd(numerator, denominator);
+            (numerator / gcd, denominator / gcd)
+        }
+
+        todo!()
+     }
+}
+
+/// A description of an orbital system.
+#[derive(Debug)]
+pub struct SystemDescriptor {
+    /// The time it takes for the system to orbit its parent.
+    pub period: Duration,
+    /// The descriptor of the systems orbiting in this one.
+    pub secondary: Vec<SystemDescriptor>,
+}
+
+impl From<&System> for SystemDescriptor {
+    fn from(system: &System) -> Self {
+        SystemDescriptor::new(system, None)
+    }
+}
+
+impl SystemDescriptor {
+    fn new(system: &System, parent: Option<&System>) -> Self {
+        Self {
+            period: parent
+                .map(|parent| {
+                    let radius = system.distance + system.primary.radius + parent.primary.radius;
+                    let start = Coords::default().with_y(radius.as_km());
+
+                    let orbit = Arc::default().with_start(start);
+
+                    1. / orbit.frequency(&parent.primary)
+                })
+                .unwrap_or_default(),
+            secondary: system
+                .secondary
+                .iter()
+                .map(|subsystem| SystemDescriptor::new(subsystem, Some(system)))
+                .collect(),
+        }
     }
 }
 

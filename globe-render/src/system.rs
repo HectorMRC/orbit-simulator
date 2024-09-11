@@ -10,7 +10,10 @@ use globe_rs::{cartesian::Coords, Distance, Luminosity, SystemState};
 use crate::{
     camera::MainCamera,
     color,
-    material::{LinearGradientMaterial, LinearGradientMaterialBuilder, RadialGradientMaterial, RadialGradientMaterialBuilder},
+    material::{
+        LinearGradientMaterial, LinearGradientMaterialBuilder, RadialGradientMaterial,
+        RadialGradientMaterialBuilder,
+    },
     shape,
     time::WorldTime,
 };
@@ -134,17 +137,15 @@ pub fn spawn_bodies(
         };
 
         let material = MaterialMesh2dBundle {
-            mesh: Mesh2dHandle(
-                meshes.add(shape::circle_mesh(radius)),
-            ),
+            mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(radius))),
             transform,
             material: materials.add(
                 LinearGradientMaterialBuilder::new(buffers)
                     .with_center(transform.translation)
-                    .with_theta(state.rotation.as_f64() as f32)
+                    .with_theta(-state.rotation.as_f64() as f32)
                     .with_segment(colors.0, 0.)
                     .with_segment(colors.1, 0.)
-                    .build()
+                    .build(),
             ),
             ..default()
         };
@@ -219,7 +220,7 @@ pub fn spawn_orbits(
         .for_each(|(index, orbit)| {
             let orbit_radius = orbit.radius.as_km() as f32;
             let shadow_radius = (orbit.radius + orbit.shadow).as_km() as f32;
-            
+
             commands.spawn((
                 MaterialMesh2dBundle {
                     mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(shadow_radius))),
@@ -292,28 +293,3 @@ pub fn spawn_habitable_zone(
             ));
         });
 }
-
-// pub fn spawn_heliosphere(
-//     mut commands: Commands,
-//     mut meshes: ResMut<Assets<Mesh>>,
-//     mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
-//     mut materials: ResMut<Assets<RadialGradientMaterial>>,
-//     system: Res<System>,    
-// ) {
-//     let system_radius = system.radius().as_km() as f32;
-
-//     commands.spawn(
-//         MaterialMesh2dBundle {
-//         mesh: Mesh2dHandle(
-//             meshes.add(shape::circle_mesh(heliosphere_radius)),
-//         ),
-//         transform:  Transform::from_xyz(0., 0., HELIOSPHERE_Z_PLANE),
-//         material: materials.add(
-//             RadialGradientMaterialBuilder::new(&mut buffers)
-//                 .with_segment(color::EERIE_BLACK, system_radius)
-//                 .with_segment(color::NIGHT, heliosphere_radius)
-//                 .build()
-//         ),
-//         ..default()
-//     });
-// }

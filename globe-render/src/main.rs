@@ -51,11 +51,11 @@ fn main() {
                     primary: Body {
                         name: Name::from_str("Moon").unwrap(),
                         radius: Distance::km(1_737.4),
-                        rotation: Frequency::hz(4.2364839e-7),
+                        rotation: Frequency::hz(4.2361738e-7),
                         mass: Mass::kg(7.34767309e22),
                         luminosity: Luminosity::ZERO,
                     },
-                    distance: Distance::km(384_400.),
+                    distance: Distance::km(384_400.),       
                     secondary: Default::default(),
                 }],
             },

@@ -86,7 +86,6 @@ impl<'a> RadialGradientMaterialBuilder<'a> {
     }
 }
 
-
 #[derive(Asset, TypePath, AsBindGroup, Debug, Default, Clone)]
 pub struct LinearGradientMaterial {
     #[storage(0, read_only)]
