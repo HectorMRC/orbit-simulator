@@ -2,46 +2,57 @@ use std::ops::Deref;
 
 use bevy::{
     prelude::*,
-    render::{
-        mesh::PrimitiveTopology, render_asset::RenderAssetUsages, storage::ShaderStorageBuffer,
-    },
-    sprite::{AlphaMode2d, MaterialMesh2dBundle, Mesh2dHandle},
+    render::storage::ShaderStorageBuffer,
+    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
-use globe_rs::{
-    cartesian::{
-        shape::{Arc, Sample},   
-        Coords,
-    },
-    Luminosity, Radiant, SystemState,
-};  
+use globe_rs::{cartesian::Coords, Distance, Luminosity, SystemState};
 
 use crate::{
     camera::MainCamera,
     color,
-    material::{RadialGradientMaterial, RadialGradientMaterialBuilder},
+    material::{LinearGradientMaterial, LinearGradientMaterialBuilder, RadialGradientMaterial, RadialGradientMaterialBuilder},
     shape,
     time::WorldTime,
 };
 
-const ORBIT_Z_PLANE: f32 = -1.;
-const HABITABLE_ZONE_Z_PLANE: f32 = -2.;
-const HELIOSPHERE_Z_PLANE: f32 = -3.;
+const HABITABLE_ZONE_Z_PLANE: f32 = -1.;
+const ORBIT_Z_PLANE: f32 = -2.;
 
 /// The orbital system.
 #[derive(Resource)]
-pub struct System(globe_rs::System);
+pub struct System {
+    pub spec: globe_rs::System,
+}
 
 impl Deref for System {
     type Target = globe_rs::System;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.spec
     }
 }
 
 impl From<globe_rs::System> for System {
     fn from(value: globe_rs::System) -> Self {
-        Self(value)
+        Self { spec: value }
+    }
+}
+
+impl System {
+    pub fn min_interorbit_distance(system: &globe_rs::System) -> Distance {
+        system
+            .secondary
+            .iter()
+            .enumerate()
+            .fold(system.radius(), |min, (index, secondary)| {
+                let diff = index
+                    .checked_sub(1)
+                    .and_then(|index| system.secondary.get(index))
+                    .map(|previous| secondary.distance.diff(previous.distance))
+                    .unwrap_or(system.secondary[0].distance);
+
+                core::cmp::min(min, diff)
+            })
     }
 }
 
@@ -68,6 +79,8 @@ pub struct HabitableZone;
 #[derive(Component, Default, Clone, Copy)]
 pub struct Orbit {
     pub center: Coords,
+    pub radius: Distance,
+    pub shadow: Distance,
 }
 
 pub fn clear_all(
@@ -92,14 +105,16 @@ pub fn clear_all(
 pub fn spawn_bodies(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut materials: ResMut<Assets<LinearGradientMaterial>>,
     system: Res<System>,
     time: Res<WorldTime>,
 ) {
     fn spawn_bodies_immersion(
         commands: &mut Commands,
         meshes: &mut Assets<Mesh>,
-        materials: &mut Assets<ColorMaterial>,
+        buffers: &mut ResMut<Assets<ShaderStorageBuffer>>,
+        materials: &mut Assets<LinearGradientMaterial>,
         system: &globe_rs::System,
         state: SystemState,
         orbit: Option<Orbit>,
@@ -110,20 +125,27 @@ pub fn spawn_bodies(
             state.position.z() as f32,
         );
 
+        let radius = system.primary.radius.as_km() as f32;
+        let colors = if system.primary.luminosity == Luminosity::ZERO {
+            (color::KHAKI, color::BATTLESHIP_GRAY)
+        } else {
+            let start = color::PERSIAN_ORANGE;
+            (start, start.lighter(0.2))
+        };
+
         let material = MaterialMesh2dBundle {
             mesh: Mesh2dHandle(
-                meshes.add(shape::circle_mesh(system.primary.radius.as_km() as f32)),
+                meshes.add(shape::circle_mesh(radius)),
             ),
             transform,
-            material: materials.add(ColorMaterial {
-                alpha_mode: AlphaMode2d::Blend,
-                color: if system.primary.luminosity == Luminosity::ZERO {
-                    color::KHAKI
-                } else {
-                    color::PERSIAN_ORANGE
-                },
-                ..Default::default()
-            }),
+            material: materials.add(
+                LinearGradientMaterialBuilder::new(buffers)
+                    .with_center(transform.translation)
+                    .with_theta(state.rotation.as_f64() as f32)
+                    .with_segment(colors.0, 0.)
+                    .with_segment(colors.1, 0.)
+                    .build()
+            ),
             ..default()
         };
 
@@ -145,11 +167,14 @@ pub fn spawn_bodies(
             .for_each(|(subsystem, substate)| {
                 let orbit = Orbit {
                     center: state.position,
+                    radius: (system.primary.radius + subsystem.distance + subsystem.primary.radius),
+                    shadow: System::min_interorbit_distance(&system) / 10.,
                 };
 
                 spawn_bodies_immersion(
                     commands,
                     meshes,
+                    buffers,
                     materials,
                     subsystem,
                     substate,
@@ -161,6 +186,7 @@ pub fn spawn_bodies(
     spawn_bodies_immersion(
         &mut commands,
         &mut meshes,
+        &mut buffers,
         &mut materials,
         &system,
         system.state_at(time.elapsed_time),
@@ -171,82 +197,48 @@ pub fn spawn_bodies(
 pub fn spawn_orbits(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    orbits: Query<(&Body, &Orbit), With<Orbit>>,
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut materials: ResMut<Assets<RadialGradientMaterial>>,
+    orbits: Query<&Orbit>,
 ) {
-    // orbits.into_iter().for_each(|(body, &orbit)| {
-    //     let mut orbit_points: Vec<[f32; 3]> = Arc::default()
-    //         .with_center(orbit.center)
-    //         .with_start(body.position)
-    //         .with_axis(Coords::default().with_z(1.))
-    //         .with_theta(Radiant::TWO_PI)
-    //         .sample(255)
-    //         .points
-    //         .into_iter()
-    //         .map(|point| [point.x() as f32, point.y() as f32, point.z() as f32])
-    //         .collect();
+    let mut orbits: Vec<&Orbit> = orbits.iter().collect();
+    orbits.sort_by(|a, b| a.radius.cmp(&b.radius));
 
-    //     // ensure the mesh is closed.
-    //     orbit_points.push(orbit_points[0]);
+    fn coords_to_vec(coords: Coords) -> Vec3 {
+        Vec3 {
+            x: coords.x() as f32,
+            y: coords.y() as f32,
+            z: coords.z() as f32,
+        }
+    }
 
-    //     let orbit_mesh = Mesh::new(PrimitiveTopology::LineStrip, RenderAssetUsages::RENDER_WORLD)
-    //         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, orbit_points);
-
-    //     commands.spawn((
-    //         MaterialMesh2dBundle {
-    //             mesh: Mesh2dHandle(meshes.add(orbit_mesh)),
-    //             material: materials.add(ColorMaterial {
-    //                 color: Color::linear_rgb(0., 1., 0.),
-    //                 alpha_mode: AlphaMode2d::Blend,
-    //                 ..Default::default()
-    //             }),
-    //             ..default()
-    //         },
-    //         orbit,
-    //     ));
-    // });
-
-    let orbit_points: Vec<[f32; 3]> = orbits
+    orbits
         .into_iter()
-        .flat_map(|(body, &orbit)| {
-            let orbit_points: Vec<[f32; 3]> = Arc::default()
-                .with_center(orbit.center)
-                .with_start(body.position)
-                .with_axis(Coords::default().with_z(1.))
-                .with_theta(Radiant::TWO_PI)
-                .sample(255)
-                .points
-                .into_iter()
-                .map(|point| [point.x() as f32, point.y() as f32, point.z() as f32])
-                .collect();
-
-            let mut next_points = orbit_points.iter().cycle();
-            next_points.next();
-
-            orbit_points
-                .iter()
-                .zip(next_points)
-                .flat_map(|(&current, &next)| [current, next])
-                .collect::<Vec<[f32; 3]>>()
-        })
-        .collect();
-
-    let orbit_mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::RENDER_WORLD)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, orbit_points);
-
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: Mesh2dHandle(meshes.add(orbit_mesh)),
-            transform: Transform::from_xyz(0., 0., ORBIT_Z_PLANE),
-            material: materials.add(ColorMaterial {
-                color: color::NIGHT,
-                alpha_mode: AlphaMode2d::Blend,
-                ..Default::default()
-            }),
-            ..default()
-        },
-        Orbit::default(),
-    ));
+        .enumerate()
+        .map(|(index, orbit)| (index as f32, orbit))
+        .for_each(|(index, orbit)| {
+            let orbit_radius = orbit.radius.as_km() as f32;
+            let shadow_radius = (orbit.radius + orbit.shadow).as_km() as f32;
+            
+            commands.spawn((
+                MaterialMesh2dBundle {
+                    mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(shadow_radius))),
+                    transform: Transform::from_translation(
+                        coords_to_vec(orbit.center).with_z(ORBIT_Z_PLANE - index),
+                    ),
+                    material: materials.add(
+                        RadialGradientMaterialBuilder::new(&mut buffers)
+                            .with_center(coords_to_vec(orbit.center))
+                            .with_segment(color::EERIE_BLACK, orbit_radius)
+                            .with_segment(color::NIGHT, orbit_radius)
+                            .with_segment(color::NIGHT.with_alpha(0.), shadow_radius)
+                            .build(),
+                    ),
+                    ..default()
+                },
+                *orbit,
+            ));
+        });
 }
 
 pub fn spawn_habitable_zone(
@@ -301,28 +293,27 @@ pub fn spawn_habitable_zone(
         });
 }
 
-pub fn spawn_heliosphere(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
-    mut materials: ResMut<Assets<RadialGradientMaterial>>,
-    system: Res<System>,    
-) {
-    let system_radius = system.radius().as_km() as f32;
-    let heliosphere_radius = system_radius * 1.1;
+// pub fn spawn_heliosphere(
+//     mut commands: Commands,
+//     mut meshes: ResMut<Assets<Mesh>>,
+//     mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+//     mut materials: ResMut<Assets<RadialGradientMaterial>>,
+//     system: Res<System>,    
+// ) {
+//     let system_radius = system.radius().as_km() as f32;
 
-    commands.spawn(
-        MaterialMesh2dBundle {
-        mesh: Mesh2dHandle(
-            meshes.add(shape::circle_mesh(heliosphere_radius)),
-        ),
-        transform:  Transform::from_xyz(0., 0., HELIOSPHERE_Z_PLANE),
-        material: materials.add(
-            RadialGradientMaterialBuilder::new(&mut buffers)
-                .with_segment(color::EERIE_BLACK, system_radius)
-                .with_segment(color::NIGHT, heliosphere_radius)
-                .build()
-        ),
-        ..default()
-    });
-}
+//     commands.spawn(
+//         MaterialMesh2dBundle {
+//         mesh: Mesh2dHandle(
+//             meshes.add(shape::circle_mesh(heliosphere_radius)),
+//         ),
+//         transform:  Transform::from_xyz(0., 0., HELIOSPHERE_Z_PLANE),
+//         material: materials.add(
+//             RadialGradientMaterialBuilder::new(&mut buffers)
+//                 .with_segment(color::EERIE_BLACK, system_radius)
+//                 .with_segment(color::NIGHT, heliosphere_radius)
+//                 .build()
+//         ),
+//         ..default()
+//     });
+// }

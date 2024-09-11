@@ -69,6 +69,11 @@ impl System {
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
             .unwrap_or(this_radius)
     }
+
+    /// Returns the total amount of subsystems in self.
+    pub fn depth(&self) -> usize {
+        self.secondary.iter().map(System::depth).sum()
+    }
 }
 
 /// An union of the [Body] type and its [Cartesian] position.

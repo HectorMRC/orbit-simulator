@@ -53,5 +53,7 @@ pub fn update_time_settings(
             .checked_sub(3600)
             .and_then(NonZeroU32::new)
             .unwrap_or(NonZeroU32::MIN);
+    } else if keys.just_pressed(KeyCode::KeyR) {
+        world_time.elapsed_time = Duration::ZERO;
     }
 }

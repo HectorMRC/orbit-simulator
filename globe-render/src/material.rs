@@ -85,3 +85,87 @@ impl<'a> RadialGradientMaterialBuilder<'a> {
         }
     }
 }
+
+
+#[derive(Asset, TypePath, AsBindGroup, Debug, Default, Clone)]
+pub struct LinearGradientMaterial {
+    #[storage(0, read_only)]
+    colors: Handle<ShaderStorageBuffer>,
+    #[storage(1, read_only)]
+    segments: Handle<ShaderStorageBuffer>,
+    #[uniform(2)]
+    center: Vec3,
+    #[uniform(3)]
+    theta: f32,
+}
+
+impl Material2d for LinearGradientMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/linear_gradient.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
+    }
+}
+
+pub struct LinearGradientMaterialBuilder<'a> {
+    buffer: &'a mut Assets<ShaderStorageBuffer>,
+    segments: Vec<ColorSegment>,
+    center: Vec3,
+    theta: f32,
+}
+
+impl<'a> LinearGradientMaterialBuilder<'a> {
+    pub fn new(buffer: &'a mut Assets<ShaderStorageBuffer>) -> Self {
+        Self {
+            buffer,
+            segments: Default::default(),
+            center: Default::default(),
+            theta: Default::default(),
+        }
+    }
+
+    pub fn with_center(mut self, center: Vec3) -> Self {
+        self.center = center;
+        self
+    }
+
+    pub fn with_theta(mut self, theta: f32) -> Self {
+        self.theta = theta;
+        self
+    }
+
+    pub fn with_segment(mut self, color: Color, start: f32) -> Self {
+        self.segments.push(ColorSegment {
+            color: color.to_linear().to_f32_array(),
+            start,
+        });
+
+        self
+    }
+
+    pub fn build(mut self) -> LinearGradientMaterial {
+        self.segments.sort_by(|a, b| a.start.total_cmp(&b.start));
+
+        let mut segments = Vec::with_capacity(self.segments.len());
+        let mut colors = Vec::with_capacity(self.segments.len());
+        self.segments.into_iter().for_each(|segment| {
+            segments.push(segment.start);
+            colors.push(segment.color);
+        });
+
+        LinearGradientMaterial {
+            colors: self.buffer.add(ShaderStorageBuffer::new(
+                bytemuck::cast_slice(colors.as_slice()),
+                RenderAssetUsages::default(),
+            )),
+            segments: self.buffer.add(ShaderStorageBuffer::new(
+                bytemuck::cast_slice(segments.as_slice()),
+                RenderAssetUsages::default(),
+            )),
+            center: self.center,
+            theta: self.theta,
+        }
+    }
+}
