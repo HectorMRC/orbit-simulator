@@ -3,7 +3,7 @@ use std::time::Duration;
 use crate::{
     cartesian::{shape::Scale, Coords},
     system::Body,
-    Frequency, Velocity,
+    Distance, Frequency, Velocity,
 };
 
 /// The gravitational constant as N⋅m^2⋅kg^−2.
@@ -24,4 +24,7 @@ pub trait Orbit {
 
     /// Returns the position of the orbiter after a given duration.
     fn orbit<S: Scale>(&self, time: Duration, central_body: &Body) -> Coords;
+
+    /// Returns the perimeter of the orbit.
+    fn perimeter<S: Scale>(&self) -> Distance;
 }

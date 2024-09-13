@@ -5,7 +5,7 @@ use crate::{
         transform::{Rotation, Transform, Translation},
         Coords,
     },
-    Body, Orbit, Radiant, Velocity,
+    Body, Distance, Orbit, Radiant, Velocity,
 };
 
 use super::{Sample, Scale, Shape};
@@ -120,7 +120,7 @@ impl Orbit for Ellipse {
         let b = self.semi_minor_axis();
 
         let meters = ellipse.velocity::<S>(central_body).as_meters_sec() * time.as_secs_f64();
-        let perimeter = S::distance(ellipse.perimeter()).as_meters();
+        let perimeter = ellipse.perimeter::<S>().as_meters();
 
         let mut theta = Radiant::TWO_PI.as_f64() / (perimeter / meters);
         let mut coord = Coords::default()
@@ -143,6 +143,19 @@ impl Orbit for Ellipse {
             .transform(rotation_y)
             .transform(rotation_z)
             .transform(translation)
+    }
+
+    fn perimeter<S: Scale>(&self) -> Distance {
+        let a = self.semi_major_axis();
+        let b = self.semi_minor_axis();
+        let h = ((a - b) / (a + b)).powi(2);
+
+        S::distance(
+            PI * (a + b)
+                * (1.
+                    + 3. * h / (10. + (4. - 3. * h).sqrt())
+                    + ((4. / PI - 14. / 11.) * h.powi(12))),
+        )
     }
 }
 
@@ -216,16 +229,6 @@ impl Ellipse {
     /// Returns the linear eccentricity of the ellipse.
     pub fn linear_eccentricity(&self) -> f64 {
         (self.semi_major_axis().powi(2) - self.semi_minor_axis().powi(2)).sqrt()
-    }
-
-    /// Returns the perimeter of the ellipse, computed using the Ramanujan II-Cantrell formula.
-    pub fn perimeter(&self) -> f64 {
-        let a = self.semi_major_axis();
-        let b = self.semi_minor_axis();
-        let h = ((a - b) / (a + b)).powi(2);
-
-        PI * (a + b)
-            * (1. + 3. * h / (10. + (4. - 3. * h).sqrt()) + ((4. / PI - 14. / 11.) * h.powi(12)))
     }
 
     pub fn transform<T: Transform>(self, transformation: T) -> Self {

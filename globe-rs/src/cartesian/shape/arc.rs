@@ -7,7 +7,7 @@ use crate::{
     },
     orbit::{Orbit, GRAVITATIONAL_CONSTANT},
     system::Body,
-    Radiant, Velocity,
+    Distance, Radiant, Velocity,
 };
 
 use super::{Sample, Scale, Shape};
@@ -60,8 +60,7 @@ impl Orbit for Arc {
 
     fn period<S: Scale>(&self, central_body: &Body) -> Duration {
         Duration::from_secs_f64(
-            S::distance(self.perimeter()).as_meters()
-                / self.velocity::<S>(central_body).as_meters_sec(),
+            self.perimeter::<S>().as_meters() / self.velocity::<S>(central_body).as_meters_sec(),
         )
     }
 
@@ -80,6 +79,10 @@ impl Orbit for Arc {
             .transform(-translation)
             .transform(rotation)
             .transform(-translation)
+    }
+
+    fn perimeter<S: Scale>(&self) -> Distance {
+        S::distance(self.center.distance(&self.start) * Radiant::TWO_PI.as_f64())
     }
 }
 
@@ -118,11 +121,6 @@ impl Arc {
     /// Returns the length of the arc.
     pub fn length(&self) -> f64 {
         self.center.distance(&self.start) * self.theta.as_f64()
-    }
-
-    /// Returns the perimeter of the arc's circumference.
-    pub fn perimeter(&self) -> f64 {
-        self.center.distance(&self.start) * Radiant::TWO_PI.as_f64()
     }
 
     /// Returns the radius of the arc.
