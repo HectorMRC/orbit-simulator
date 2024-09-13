@@ -1,5 +1,5 @@
 /// Returns the greatest common divisor of a and b.
-pub fn integer_gcd(mut a: i64, mut b: i64) -> i64 {
+pub fn gcd(mut a: i64, mut b: i64) -> i64 {
     if a < b {
         (a, b) = (b, a);
     }
@@ -12,64 +12,39 @@ pub fn integer_gcd(mut a: i64, mut b: i64) -> i64 {
 }
 
 /// Returns the least common multiple of a and b.
-pub fn integer_lcd(a: i64, b: i64) -> i64 {
-    (a * b).abs() / integer_gcd(a, b)
+pub fn lcd(a: i64, b: i64) -> i64 {
+    (a * b).abs() / gcd(a, b)
 }
 
-/// Returns the numerator and denominator, fraction of which results in the given decimal value.
-pub fn decimal_to_fraction(decimal: f64) -> (i64, i64) {
+pub fn common_base(decimals: &mut [f64]) -> f64 {
     let mut denominator = 1.;
-    while (decimal * denominator).fract() != 0. {
+    while decimals.iter().any(|d| d.fract() != 0.) {
+        decimals.iter_mut().for_each(|d| *d *= 10.);
         denominator *= 10.;
     }
 
-    let numerator = (decimal * denominator) as i64;
-    let denominator = denominator as i64;
-
-    let gcd = integer_gcd(numerator, denominator);
-    (numerator / gcd, denominator / gcd)
-}
-
-/// Returns the least common multiple of two decimal values.
-pub fn decimal_lcd(a: f64, b: f64) -> f64 {
-    let (an, ad) = decimal_to_fraction(a);
-    let (bn, bd) = decimal_to_fraction(b);
-
-    integer_lcd(an, bn) as f64 / integer_gcd(ad, bd) as f64
+    denominator
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::math::decimal_to_fraction;
+    use crate::math::common_base;
 
     #[test]
-    fn decimal_to_fraction_should_not_fail() {
+    fn common_base_should_not_fail() {
         struct Test {
-            input: f64,
-            output: (i64, i64),
+            input: Vec<f64>,
+            output: f64,
         }
 
-        vec![
-            Test {
-                input: 0.5,
-                output: (1, 2),
-            },
-            Test {
-                input: 0.444_444_444_444_444_4,
-                output: (4, 9),
-            },
-            Test {
-                input: 0.666_666_666_666_666_6,
-                output: (2, 3),
-            },
-            Test {
-                input: 1.75,
-                output: (7, 4),
-            },
-        ]
+        vec![Test {
+            input: vec![0.5, -0.05, 1.00045],
+            output: 100_000.,
+        }]
         .into_iter()
-        .for_each(|test| {
-            assert_eq!(decimal_to_fraction(test.input), test.output);
+        .for_each(|mut test| {
+            let got = common_base(&mut test.input);
+            assert_eq!(got, test.output);
         })
     }
 }

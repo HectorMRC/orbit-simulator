@@ -10,7 +10,7 @@ mod translation;
 pub use translation::*;
 
 /// A geometric transformation.
-pub trait Transform {
+pub trait Transform: Copy {
     /// Performs the geometric transformation over the given point.
     fn transform(&self, point: Coords) -> Coords;
 }

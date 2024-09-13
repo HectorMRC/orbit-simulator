@@ -2,10 +2,18 @@ use std::ops::Deref;
 
 use bevy::{
     prelude::*,
-    render::storage::ShaderStorageBuffer,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    render::{
+        mesh::PrimitiveTopology, render_asset::RenderAssetUsages, storage::ShaderStorageBuffer,
+    },
+    sprite::{AlphaMode2d, MaterialMesh2dBundle, Mesh2dHandle},
 };
-use globe_rs::{cartesian::Coords, Distance, Luminosity, SystemState};
+use globe_rs::{
+    cartesian::{
+        shape::{Ellipse, Sample},
+        Coords,
+    },
+    Distance, Luminosity, SystemState,
+};
 
 use crate::{
     camera::MainCamera,
@@ -292,4 +300,43 @@ pub fn spawn_habitable_zone(
                 HabitableZone,
             ));
         });
+}
+
+pub fn spawn_ellipse(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let mut ellipse_points: Vec<[f32; 3]> = Ellipse::default()
+        .with_foci(
+            Coords::default(),
+            Coords::default().with_x(Distance::km(150_950_000.).as_km()),
+        )
+        .with_start(Coords::default().with_x(-Distance::km(20_000_000.).as_km()))
+        .sample(255)
+        .points
+        .into_iter()
+        .map(|point| [point.x() as f32, point.y() as f32, point.z() as f32])
+        .collect();
+
+    ellipse_points.push(ellipse_points[0]);
+
+    let orbit_mesh = Mesh::new(
+        PrimitiveTopology::LineStrip,
+        RenderAssetUsages::RENDER_WORLD,
+    )
+    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, ellipse_points);
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: Mesh2dHandle(meshes.add(orbit_mesh)),
+            material: materials.add(ColorMaterial {
+                color: Color::WHITE,
+                alpha_mode: AlphaMode2d::Blend,
+                ..Default::default()
+            }),
+            ..default()
+        },
+        Orbit::default(),
+    ));
 }

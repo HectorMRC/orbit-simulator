@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     cartesian::{shape::Arc, Coords},
-    orbit::Orbit,
-    Distance, Frequency, Luminosity, Mass, Radiant,
+    Distance, Frequency, Luminosity, Mass, Radiant, GRAVITATIONAL_CONSTANT,
 };
 
 /// An arbitrary spherical body.
@@ -22,6 +21,13 @@ pub struct Body {
     pub mass: Mass,
     /// The luminosity of the body.
     pub luminosity: Luminosity,
+}
+
+impl Body {
+    /// Returns the standard gravitational parameter of the body.
+    pub fn gravitational_parameter(&self) -> f64 {
+        GRAVITATIONAL_CONSTANT * self.mass.as_kg()
+    }
 }
 
 /// Describes the habitable zone around a body.
@@ -70,50 +76,17 @@ impl System {
             .unwrap_or(this_radius)
     }
 
-    /// Returns the frequency of the system.
-    ///
-    /// The period from this frequency is the time it takes to the system to get into the same state.
-    pub fn frequency(&self) -> Frequency {
-        /// Returns the greatest common divisor of a and b.
-        fn integer_gcd(mut a: f64, mut b: f64) -> f64 {
-            if a < b {
-                (a, b) = (b, a);
-            }
+    /// Returns the orbital frequency of the system, which corresponds to the time it takes to the system to recover the same
+    /// orbital state.
+    pub fn orbital_frequency(&self) -> Frequency {
+        // fn orbit_frequency(system: &System, central_body: &Body) -> Frequency {
+        //     let radius = system.distance + system.primary.radius + central_body.radius;
+        //     let start = Coords::default().with_y(radius.as_km());
 
-            while b != 0. {
-                (a, b) = (b, a % b)
-            }
+        //     Arc::default().with_start(start).frequency(&central_body)
+        // }
 
-            a
-        }
-
-        /// Returns the least common multiple of a and b.
-        fn integer_lcd(a: f64, b: f64) -> f64 {
-            (a * b).abs() / integer_gcd(a, b)
-        }
-
-        /// Returns the fraction that represents the given number.
-        fn decimal_to_fraction(decimal: f64) -> (f64, f64) {
-            let mut denominator = 1.;
-            while (decimal * denominator).fract() != 0. {
-                denominator *= 10.;
-            }
-
-            let numerator = decimal * denominator;
-            let gcd = integer_gcd(numerator, denominator);
-            (numerator / gcd, denominator / gcd)
-        }
-
-        fn decimal_lcd(a: f64, b: f64) -> f64 {
-            let (an, ad) = decimal_to_fraction(a);
-            let (bn, bd) = decimal_to_fraction(b);
-
-            integer_lcd(an, bn) / integer_gcd(ad, bd)
-        }
-
-        self.secondary
-            .iter()
-            .fold(self.primary.rotation, |gcd, system| gcd)
+        todo!()
     }
 }
 
@@ -126,33 +99,33 @@ pub struct SystemDescriptor {
     pub secondary: Vec<SystemDescriptor>,
 }
 
-impl From<&System> for SystemDescriptor {
-    fn from(system: &System) -> Self {
-        SystemDescriptor::new(system, None)
-    }
-}
+// impl From<&System> for SystemDescriptor {
+//     fn from(system: &System) -> Self {
+//         SystemDescriptor::new(system, None)
+//     }
+// }
 
-impl SystemDescriptor {
-    fn new(system: &System, parent: Option<&System>) -> Self {
-        Self {
-            period: parent
-                .map(|parent| {
-                    let radius = system.distance + system.primary.radius + parent.primary.radius;
-                    let start = Coords::default().with_y(radius.as_km());
+// impl SystemDescriptor {
+//     fn new(system: &System, parent: Option<&System>) -> Self {
+//         Self {
+//             period: parent
+//                 .map(|parent| {
+//                     let radius = system.distance + system.primary.radius + parent.primary.radius;
+//                     let start = Coords::default().with_y(radius.as_km());
 
-                    let orbit = Arc::default().with_start(start);
+//                     let orbit = Arc::default().with_start(start);
 
-                    1. / orbit.frequency(&parent.primary)
-                })
-                .unwrap_or_default(),
-            secondary: system
-                .secondary
-                .iter()
-                .map(|subsystem| SystemDescriptor::new(subsystem, Some(system)))
-                .collect(),
-        }
-    }
-}
+//                     1. / orbit.frequency(&parent.primary)
+//                 })
+//                 .unwrap_or_default(),
+//             secondary: system
+//                 .secondary
+//                 .iter()
+//                 .map(|subsystem| SystemDescriptor::new(subsystem, Some(system)))
+//                 .collect(),
+//         }
+//     }
+// }
 
 /// An union of the [Body] type and its [Cartesian] position.
 #[derive(Debug, Clone, Copy)]
@@ -192,10 +165,12 @@ impl SystemState {
             .with_start(start)
             .with_axis([0., 0., 1.].into());
 
-        let theta =
-            (Radiant::from(orbit.frequency(parent.body)).as_f64() * time.as_secs() as f64).into();
+        // let theta =
+        //     (Radiant::from(orbit.frequency(parent.body)).as_f64() * time.as_secs() as f64).into();
 
-        orbit.with_theta(theta).end()
+        // orbit.with_theta(theta).end()
+
+        todo!()
     }
 
     fn at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Self {

@@ -1,3 +1,5 @@
+use std::ops::Neg;
+
 use nalgebra::Matrix3;
 
 use crate::Radiant;
@@ -73,6 +75,17 @@ impl Transform for Rotation {
         );
 
         (rotation * point.0).into()
+    }
+}
+
+impl Neg for Rotation {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            theta: Radiant::from(-self.theta.as_f64()),
+            axis: self.axis,
+        }
     }
 }
 
