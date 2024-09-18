@@ -9,10 +9,13 @@ pub struct MainCamera {
 }
 
 /// Spawns the main camera.
-pub fn spawn(mut commands: Commands, system: Res<System>, window: Query<&Window>) {
+pub fn spawn<O>(mut commands: Commands, system: Res<System<O>>, window: Query<&Window>)
+where
+    O: 'static + globe_rs::Orbit + Sync + Send,
+{
     let window = window.single();
 
-    let system_radius = system.radius().as_km() as f32;
+    let system_radius = (system.radius() + system.primary.radius).as_meters() as f32;
     let scale =
         (2. * system_radius) / f32::min(window.resolution.width(), window.resolution.height());
 

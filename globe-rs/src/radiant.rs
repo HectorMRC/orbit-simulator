@@ -1,10 +1,15 @@
-use std::f64::consts::PI;
+use std::{
+    f64::consts::PI,
+    ops::{Add, Div, Mul},
+};
+
+use serde::{Deserialize, Serialize};
 
 use crate::{Frequency, PositiveFloat};
 
 /// The [radiant](https://en.wikipedia.org/wiki/Radian) unit, which is always a positive number
 /// within the range of [0, 2π].
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Radiant(PositiveFloat);
 
 impl From<f64> for Radiant {
@@ -26,6 +31,30 @@ impl From<Frequency> for Radiant {
     /// The radiants per seconds the frequency represents.
     fn from(value: Frequency) -> Self {
         (value.as_hz() * Self::TWO_PI.as_f64()).into()
+    }
+}
+
+impl Add for Radiant {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        (self.0 .0 + rhs.0 .0).into()
+    }
+}
+
+impl Mul<f64> for Radiant {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        (self.0 .0 * rhs).into()
+    }
+}
+
+impl Div<f64> for Radiant {
+    type Output = Self;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        (self.0 .0 / rhs).into()
     }
 }
 

@@ -4,8 +4,8 @@ use alvidir::name::Name;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    cartesian::{shape::Arc, Coords},
-    Distance, Frequency, Luminosity, Mass, Radiant, GRAVITATIONAL_CONSTANT,
+    cartesian::{transform::Translation, Coords},
+    Distance, Frequency, Luminosity, Mass, Orbit, Radiant, GRAVITATIONAL_CONSTANT,
 };
 
 /// An arbitrary spherical body.
@@ -49,36 +49,36 @@ impl From<&Body> for HabitableZone {
 
 /// An orbital system.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct System {
+pub struct System<O: Orbit> {
     /// The central body of the system.
     pub primary: Body,
-    /// The distance between the surface of the primary body of this system and that of the one it
-    /// orbits, if any.
-    pub distance: Distance,
+    /// The orbit the system.
+    #[serde(default)]
+    pub orbit: Option<O>,
     /// The systems orbiting the primary body.
-    pub secondary: Vec<System>,
+    pub secondary: Vec<System<O>>,
 }
 
-impl System {
+impl<O: Orbit> System<O> {
     /// Returns the state of the system in a given moment in time.
     pub fn state_at(&self, time: Duration) -> SystemState {
-        SystemState::at(time, self, None)
+        SystemState::at::<O>(time, self, None)
     }
 
     /// Returns the radius of the system.
     pub fn radius(&self) -> Distance {
-        let this_radius = self.distance + self.primary.radius;
+        let radius = self.orbit.map(|orbit| orbit.radius()).unwrap_or_default();
 
         self.secondary
             .iter()
-            .map(|system| system.radius() + this_radius)
+            .map(|system| system.radius() + radius)
             .max()
-            .unwrap_or(this_radius)
+            .unwrap_or(radius)
     }
 
     /// Returns the orbital frequency of the system, which corresponds to the time it takes to the system to recover the same
     /// orbital state.
-    pub fn orbital_frequency(&self) -> Frequency {
+    pub fn state_frequency(&self) -> Frequency {
         // fn orbit_frequency(system: &System, central_body: &Body) -> Frequency {
         //     let radius = system.distance + system.primary.radius + central_body.radius;
         //     let start = Coords::default().with_y(radius.as_km());
@@ -131,9 +131,9 @@ pub struct SystemDescriptor {
 #[derive(Debug, Clone, Copy)]
 struct BodyPosition<'a> {
     /// The body itself.
-    body: &'a Body,
+    pub body: &'a Body,
     /// The location of the body.
-    position: Coords,
+    pub position: Coords,
 }
 
 /// The configuration of a [System] in a specific moment in time.
@@ -148,35 +148,32 @@ pub struct SystemState {
 }
 
 impl SystemState {
-    fn rotation_at(time: Duration, body: &Body) -> Radiant {
+    fn spin_at(mut time: Duration, body: &Body) -> Radiant {
+        time = Duration::from_secs_f64(
+            time.as_secs_f64() % (1. / body.rotation).as_secs_f64()
+        );
+
         (Radiant::from(body.rotation).as_f64() * time.as_secs() as f64).into()
     }
 
-    fn position_at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Coords {
-        let Some(parent) = parent else {
+    fn position_at<O: Orbit>(
+        time: Duration,
+        system: &System<O>,
+        parent: Option<BodyPosition>,
+    ) -> Coords {
+        let (Some(parent), Some(orbit)) = (parent, system.orbit) else {
             return Default::default();
         };
 
-        let radius = system.distance + system.primary.radius + parent.body.radius;
-        let start = parent.position.with_y(parent.position.y() + radius.as_km());
-
-        let orbit = Arc::default()
-            .with_center(parent.position)
-            .with_start(start)
-            .with_axis([0., 0., 1.].into());
-
-        // let theta =
-        //     (Radiant::from(orbit.frequency(parent.body)).as_f64() * time.as_secs() as f64).into();
-
-        // orbit.with_theta(theta).end()
-
-        todo!()
+        orbit.position_at(time, parent.body)
+        .transform(Translation::default().with_vector(parent.position))
+        .transform(Translation::default().with_vector(orbit.focus()))
     }
 
-    fn at(time: Duration, system: &System, parent: Option<BodyPosition>) -> Self {
+    fn at<O: Orbit>(time: Duration, system: &System<O>, parent: Option<BodyPosition>) -> Self {
         let mut state = SystemState {
-            rotation: Self::rotation_at(time, &system.primary),
-            position: Self::position_at(time, system, parent),
+            rotation: Self::spin_at(time, &system.primary),
+            position: Self::position_at::<O>(time, system, parent),
             ..Default::default()
         };
 
@@ -188,7 +185,7 @@ impl SystemState {
         state.secondary = system
             .secondary
             .iter()
-            .map(|system| Self::at(time, system, Some(parent)))
+            .map(|system| Self::at::<O>(time, system, Some(parent)))
             .collect();
 
         state
@@ -196,17 +193,17 @@ impl SystemState {
 }
 
 /// Iterates over time yielding the corresponding state for a given [System].  
-pub struct SystemStateGenerator<'a> {
+pub struct SystemStateGenerator<'a, O: Orbit> {
     /// The system being iterated.
-    pub system: &'a System,
+    pub system: &'a System<O>,
     /// The time-step between generations.
     pub step: Duration,
     /// The latest generation time.
     pub time: Duration,
 }
 
-impl<'a> From<&'a System> for SystemStateGenerator<'a> {
-    fn from(system: &'a System) -> Self {
+impl<'a, O: Orbit> From<&'a System<O>> for SystemStateGenerator<'a, O> {
+    fn from(system: &'a System<O>) -> Self {
         Self {
             system,
             step: Duration::from_secs(1),
@@ -215,7 +212,7 @@ impl<'a> From<&'a System> for SystemStateGenerator<'a> {
     }
 }
 
-impl<'a> Iterator for SystemStateGenerator<'a> {
+impl<'a, O: Orbit> Iterator for SystemStateGenerator<'a, O> {
     type Item = SystemState;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -225,7 +222,7 @@ impl<'a> Iterator for SystemStateGenerator<'a> {
     }
 }
 
-impl<'a> SystemStateGenerator<'a> {
+impl<'a, O: Orbit> SystemStateGenerator<'a, O> {
     pub fn with_step(mut self, step: Duration) -> Self {
         self.step = step;
         self

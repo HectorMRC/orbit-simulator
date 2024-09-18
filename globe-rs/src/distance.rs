@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::PositiveFloat;
 
+const METERS_PER_KM: f64 = 1000.;
+
 /// The distance between two points in space, which is always a positive number.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Distance(PositiveFloat);
@@ -36,6 +38,11 @@ impl Distance {
     pub const ZERO: Self = Self(PositiveFloat::ZERO);
     pub const ASTRONOMICAL_UNIT: Self = Self(PositiveFloat(149_597_870.7));
 
+    /// Returns a new distance of m meters.
+    pub fn meters(m: f64) -> Self {
+        Self((m / METERS_PER_KM).into())
+    }
+
     /// Returns a new distance of km kilometers.
     pub fn km(km: f64) -> Self {
         Self((km).into())
@@ -43,16 +50,16 @@ impl Distance {
 
     /// Returns a [f64] representing the distance in meters.
     pub fn as_meters(&self) -> f64 {
-        self.0 .0 * 1000.
+        self.0 .0 * METERS_PER_KM
     }
 
     /// Returns a [f64] representing the distance in kilometers.
     pub fn as_km(&self) -> f64 {
-        self.0 .0
+        self.0.0
     }
 
     /// Returns the absolute difference between self and the given distance.
-    pub fn diff(self, rhs: Self) -> Self {
+    pub fn abs_diff(self, rhs: Self) -> Self {
         Self((self.0 .0 - rhs.0 .0).into())
     }
 }

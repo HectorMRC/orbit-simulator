@@ -1,143 +1,92 @@
 use std::time::Duration;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
-    cartesian::{
-        transform::{Rotation, Translation},
-        Coords,
-    },
+    cartesian::{transform::Rotation, Coords},
     orbit::{Orbit, GRAVITATIONAL_CONSTANT},
     system::Body,
     Distance, Radiant, Velocity,
 };
 
-use super::{Sample, Scale, Shape};
+use super::{Sample, Shape};
 
-/// An arc shape, which is simply a segment or portion of a circle's circumference.
-#[derive(Clone, Copy)]
-pub struct Arc {
-    /// The center of the circumference of the arc.
-    pub center: Coords,
-    /// The starting point of the arc.
-    pub start: Coords,
-    /// The axis about which the arc is made.
-    pub axis: Coords,
-    /// The angle of the arc to be sampled.
-    pub theta: Radiant,
+/// A circumference.
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+pub struct Circle {
+    /// The radius of the circle.
+    pub radius: Distance,
 }
 
-impl Sample for Arc {
+impl Sample for Circle {
     fn sample(&self, segments: usize) -> super::Shape {
-        let theta = (self.theta.as_f64() / segments as f64).into();
-
-        let translation = Translation::default().with_vector(self.center);
-        let rotation = Rotation::default().with_axis(self.axis).with_theta(theta);
-
-        let mut points = Vec::with_capacity(segments + 1);
-        points.push(self.start);
-
-        for index in 1..segments {
-            points.push(
-                points[index - 1]
-                    .transform(-translation)
-                    .transform(rotation)
-                    .transform(translation),
-            );
+        Shape {
+            points: (0..segments)
+                .into_iter()
+                .map(|index| {
+                    let theta = (Radiant::TWO_PI.as_f64() * index as f64 / segments as f64).into();
+                    let rotation = Rotation::default()
+                        .with_axis(Coords::default().with_z(1.))
+                        .with_theta(theta);
+                    Coords::default()
+                        .with_x(self.radius.as_meters())
+                        .transform(rotation)
+                })
+                .collect(),
         }
-
-        Shape { points }
     }
 }
 
 /// An orbit in which the orbiting body moves in a perfect circle around the central body.
-impl Orbit for Arc {
-    fn velocity<S: Scale>(&self, central_body: &Body) -> Velocity {
+impl Orbit for Circle {
+    fn velocity_at(&self, _: Radiant, orbitee: &Body) -> Velocity {
         Velocity::meters_sec(
-            (GRAVITATIONAL_CONSTANT * central_body.mass.as_kg()
-                / S::distance(self.radius()).as_meters())
-            .sqrt(),
+            (GRAVITATIONAL_CONSTANT * orbitee.mass.as_kg() / self.radius.as_meters()).sqrt(),
         )
     }
 
-    fn period<S: Scale>(&self, central_body: &Body) -> Duration {
-        Duration::from_secs_f64(
-            self.perimeter::<S>().as_meters() / self.velocity::<S>(central_body).as_meters_sec(),
-        )
-    }
-
-    fn orbit<S: Scale>(&self, mut time: Duration, central_body: &Body) -> Coords {
-        let period = self.period::<S>(central_body);
+    fn position_at(&self, mut time: Duration, orbitee: &Body) -> Coords {
+        let period = self.period(orbitee);
         time = Duration::from_secs_f64(time.as_secs_f64() % period.as_secs_f64());
 
-        let translation = Translation::default().with_vector(self.center);
-
-        let theta = Radiant::TWO_PI.as_f64() * time.as_secs_f64() / period.as_secs_f64();
+        let theta = Radiant::TWO_PI / period.as_secs_f64() * time.as_secs_f64();
         let rotation = Rotation::default()
-            .with_axis(self.axis)
-            .with_theta(theta.into());
+            .with_axis(Coords::default().with_z(1.))
+            .with_theta(theta);
 
-        self.start
-            .transform(-translation)
+        Coords::default()
+            .with_x(self.radius.as_meters())
             .transform(rotation)
-            .transform(-translation)
     }
 
-    fn perimeter<S: Scale>(&self) -> Distance {
-        S::distance(self.center.distance(&self.start) * Radiant::TWO_PI.as_f64())
+    fn period(&self, orbitee: &Body) -> Duration {
+        Duration::from_secs_f64(
+            Radiant::TWO_PI.as_f64()
+                * (self.radius.as_meters().powi(3) / orbitee.gravitational_parameter()).sqrt(),
+        )
+    }
+
+    fn perimeter(&self) -> Distance {
+        self.radius * Radiant::TWO_PI.as_f64()
+    }
+
+    fn focus(&self) -> Coords {
+        Coords::default()
+    }
+
+    fn radius(&self) -> Distance {
+        self.radius
     }
 }
 
-impl Default for Arc {
-    fn default() -> Self {
-        Self {
-            center: Default::default(),
-            start: Default::default(),
-            axis: Default::default(),
-            theta: Radiant::TWO_PI,
-        }
-    }
-}
-
-impl Arc {
-    pub fn with_center(mut self, center: Coords) -> Self {
-        self.center = center;
-        self
-    }
-
-    pub fn with_start(mut self, start: Coords) -> Self {
-        self.start = start;
-        self
-    }
-
-    pub fn with_axis(mut self, axis: Coords) -> Self {
-        self.axis = axis;
-        self
-    }
-
-    pub fn with_theta(mut self, theta: Radiant) -> Self {
-        self.theta = theta;
+impl Circle {
+    pub fn with_radius(mut self, radius: Distance) -> Self {
+        self.radius = radius;
         self
     }
 
     /// Returns the length of the arc.
-    pub fn length(&self) -> f64 {
-        self.center.distance(&self.start) * self.theta.as_f64()
-    }
-
-    /// Returns the radius of the arc.
-    pub fn radius(&self) -> f64 {
-        self.center.distance(&self.start)
-    }
-
-    /// Returns the latest [Cartesian] of the shape.
-    pub fn end(&self) -> Coords {
-        let translation = Translation::default().with_vector(-self.center);
-        let rotation = Rotation::default()
-            .with_axis(self.axis)
-            .with_theta(self.theta);
-
-        self.start
-            .transform(translation)
-            .transform(rotation)
-            .transform(-translation)
+    pub fn length(&self) -> Distance {
+        self.radius * Radiant::TWO_PI.as_f64()
     }
 }

@@ -14,17 +14,20 @@ pub use distance::*;
 mod frequency;
 pub use frequency::*;
 
+mod luminosity;
+pub use luminosity::*;
+
 mod mass;
 pub use mass::*;
 
 mod radiant;
 pub use radiant::*;
 
+mod ratio;
+pub use ratio::*;
+
 mod velocity;
 pub use velocity::*;
-
-mod luminosity;
-pub use luminosity::*;
 
 mod math;
 

@@ -1,280 +1,130 @@
 use std::{f64::consts::PI, time::Duration};
 
-use crate::{
-    cartesian::{
-        transform::{Rotation, Transform, Translation},
-        Coords,
-    },
-    Body, Distance, Orbit, Radiant, Velocity,
-};
+use serde::{Deserialize, Serialize};
 
-use super::{Sample, Scale, Shape};
+use crate::{cartesian::Coords, Body, Distance, Orbit, Radiant, Ratio, Velocity};
 
-/// An elliptic shape.
-#[derive(Clone, Copy)]
+use super::{Sample, Shape};
+
+/// An ellipse.
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct Ellipse {
-    /// The starting point of the ellipse.
-    pub start: Coords,
-    /// The ellipse focus points.
-    pub foci: [Coords; 2],
-    /// The angle of the ellipse to be sampled.
-    pub theta: Radiant,
+    /// The semi-major axis of the ellipse.
+    pub semi_major_axis: Distance,
+    /// The eccentricity of the ellipse.
+    pub eccentricity: Ratio,
 }
 
 impl Sample for Ellipse {
     fn sample(&self, segments: usize) -> super::Shape {
-        let translation = Translation::default().with_vector(self.center());
-        let mut ellipse = self.transform(-translation);
-
-        let rotation_z = Rotation::default()
-            .with_axis(Coords::default().with_z(1.))
-            .with_theta(ellipse.theta_z());
-
-        ellipse = ellipse.transform(-rotation_z);
-
-        let rotation_y = Rotation::default()
-            .with_axis(Coords::default().with_y(1.))
-            .with_theta(ellipse.theta_y());
-
-        ellipse = ellipse.transform(-rotation_y);
-
-        let rotation_x = Rotation::default()
-            .with_axis(Coords::default().with_x(1.))
-            .with_theta(ellipse.theta_x());
-
-        ellipse = ellipse.transform(-rotation_x);
-
-        let initial_theta = ellipse.start.y().atan2(ellipse.start.x());
-        let a = ellipse.semi_major_axis();
-        let b = ellipse.semi_minor_axis();
-
         Shape {
             points: (0..segments)
                 .into_iter()
-                .map(|vertex_index| self.theta.as_f64() * vertex_index as f64 / segments as f64)
-                .map(|vertex_theta| initial_theta + vertex_theta)
-                .map(|theta| {
-                    Coords::default()
-                        .with_x(a * theta.cos())
-                        .with_y(b * theta.sin())
-                })
-                .map(|point| {
-                    point
-                        .transform(rotation_x)
-                        .transform(rotation_y)
-                        .transform(rotation_z)
-                        .transform(translation)
-                })
+                .map(|vertex_index| Radiant::TWO_PI / segments as f64 * vertex_index as f64)
+                .map(|theta| self.position(theta))
                 .collect(),
         }
     }
 }
 
 impl Orbit for Ellipse {
-    fn velocity<S: Scale>(&self, central_body: &Body) -> Velocity {
-        let radius = S::distance(self.start.distance(&self.foci[0]));
-        let a = S::distance(self.semi_major_axis());
+    /// Assumes the central body is located on the right foci of the ellipse.
+    fn velocity_at(&self, theta: Radiant, orbitee: &Body) -> Velocity {
+        let radius = Coords::default()
+            .with_x(self.linear_eccentricity().as_meters())
+            .distance(&self.position(theta));
 
         Velocity::meters_sec(
-            (2. * central_body.gravitational_parameter()
-                * ((1. / radius.as_meters()) - (1. / (2. * a.as_meters()))))
+            (2. * orbitee.gravitational_parameter()
+                * ((1. / radius) - (1. / (2. * self.semi_major_axis.as_meters()))))
             .sqrt(),
         )
     }
 
-    fn period<S: Scale>(&self, central_body: &Body) -> Duration {
+    fn position_at(&self, mut time: Duration, orbitee: &Body) -> Coords {
+        time = Duration::from_secs_f64(time.as_secs_f64() % self.period(orbitee).as_secs_f64());
+
+        let mean_anomaly =
+            Radiant::TWO_PI.as_f64() / self.period(orbitee).as_secs_f64() * time.as_secs_f64();
+        
+        let mut eccentric_anomaly = if self.eccentricity.as_f64() < 0.8 {
+            mean_anomaly
+        } else {
+            PI
+        };
+
+        for _ in 0..100 {
+            // Calculate f(E) = E - e*sin(E) - M and its derivative f'(E) = 1 - e*cos(E)
+            let f = eccentric_anomaly
+                - self.eccentricity.as_f64() * eccentric_anomaly.sin()
+                - mean_anomaly;
+            
+            let f_prime = 1.0 - self.eccentricity.as_f64() * eccentric_anomaly.cos();
+            eccentric_anomaly = eccentric_anomaly - f / f_prime;
+        }
+
+        let true_anomaly = 2.0
+            * ((1.0 + self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).sin())
+                .atan2((1.0 - self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).cos());
+
+        self.position(true_anomaly.into())
+    }
+
+    fn period(&self, orbitee: &Body) -> Duration {
         Duration::from_secs_f64(
-            (Radiant::TWO_PI.as_f64() / central_body.gravitational_parameter().sqrt())
-                * self.semi_major_axis().powf(3. / 2.),
+            Radiant::TWO_PI.as_f64()
+                * (self.semi_major_axis.as_meters().powi(3) / orbitee.gravitational_parameter())
+                    .sqrt(),
         )
     }
 
-    fn orbit<S: Scale>(&self, mut time: Duration, central_body: &Body) -> Coords {
-        time = Duration::from_secs_f64(
-            time.as_secs_f64() % self.period::<S>(central_body).as_secs_f64(),
-        );
-
-        let translation = Translation::default().with_vector(self.center());
-        let mut ellipse = self.transform(-translation);
-
-        let rotation_z = Rotation::default()
-            .with_axis(Coords::default().with_z(1.))
-            .with_theta(ellipse.theta_z());
-
-        ellipse = ellipse.transform(-rotation_z);
-
-        let rotation_y = Rotation::default()
-            .with_axis(Coords::default().with_y(1.))
-            .with_theta(ellipse.theta_y());
-
-        ellipse = ellipse.transform(-rotation_y);
-
-        let rotation_x = Rotation::default()
-            .with_axis(Coords::default().with_x(1.))
-            .with_theta(ellipse.theta_x());
-
-        ellipse = ellipse.transform(-rotation_x);
-
-        let initial_theta = ellipse.start.y().atan2(ellipse.start.x());
-        let a = self.semi_major_axis();
+    fn perimeter(&self) -> Distance {
+        let a = self.semi_major_axis;
         let b = self.semi_minor_axis();
+        let h = (a.abs_diff(b).as_meters() / (a + b).as_meters()).powi(2);
 
-        let meters = ellipse.velocity::<S>(central_body).as_meters_sec() * time.as_secs_f64();
-        let perimeter = ellipse.perimeter::<S>().as_meters();
-
-        let mut theta = Radiant::TWO_PI.as_f64() / (perimeter / meters);
-        let mut coord = Coords::default()
-            .with_x(a * (initial_theta + theta).cos())
-            .with_y(b * (initial_theta + theta).sin());
-
-        let mut distance = S::distance(coord.distance(&ellipse.start));
-
-        while distance.as_meters() > meters {
-            theta = theta * meters / distance.as_meters();
-            coord = Coords::default()
-                .with_x(a * (initial_theta + theta).cos())
-                .with_y(b * (initial_theta + theta).sin());
-
-            distance = S::distance(coord.distance(&ellipse.start));
-        }
-
-        coord
-            .transform(rotation_x)
-            .transform(rotation_y)
-            .transform(rotation_z)
-            .transform(translation)
-    }
-
-    fn perimeter<S: Scale>(&self) -> Distance {
-        let a = self.semi_major_axis();
-        let b = self.semi_minor_axis();
-        let h = ((a - b) / (a + b)).powi(2);
-
-        S::distance(
-            PI * (a + b)
+        Distance::meters(
+            PI * (a + b).as_meters()
                 * (1.
                     + 3. * h / (10. + (4. - 3. * h).sqrt())
                     + ((4. / PI - 14. / 11.) * h.powi(12))),
         )
     }
-}
 
-impl Default for Ellipse {
-    fn default() -> Self {
-        Self {
-            start: Default::default(),
-            foci: Default::default(),
-            theta: Radiant::TWO_PI,
-        }
+    fn focus(&self) -> Coords {
+        Coords::default().with_x(-self.linear_eccentricity().as_meters())
+    }
+
+    fn radius(&self) -> Distance {
+        self.semi_major_axis + self.linear_eccentricity()
     }
 }
 
 impl Ellipse {
-    /// Returns the ellipse with the given semi-major axis and eccentricity.
-    pub fn new(semi_major_axis: f64, eccentricity: f64) -> Self {
-        let semi_minor_axis = semi_major_axis * (1. - eccentricity.powi(2)).sqrt();
-        let linear_eccentricity = (semi_major_axis.powi(2) - semi_minor_axis.powi(2)).sqrt();
-
-        Self {
-            start: Coords::default().with_x(semi_major_axis),
-            foci: [
-                Coords::default().with_x(-linear_eccentricity),
-                Coords::default().with_x(linear_eccentricity),
-            ],
-            ..Default::default()
-        }
-    }
-
-    pub fn with_start(mut self, start: Coords) -> Self {
-        self.start = start;
+    pub fn with_semi_major_axis(mut self, semi_major_axis: Distance) -> Self {
+        self.semi_major_axis = semi_major_axis;
         self
     }
 
-    pub fn with_foci(mut self, f1: Coords, f2: Coords) -> Self {
-        self.foci = [f1, f2];
+    pub fn with_eccentricity(mut self, eccentricity: Ratio) -> Self {
+        self.eccentricity = eccentricity;
         self
-    }
-
-    pub fn with_theta(mut self, theta: Radiant) -> Self {
-        self.theta = theta;
-        self
-    }
-
-    /// Returns the semi major axis (aka. a) of the ellipse.
-    pub fn semi_major_axis(&self) -> f64 {
-        let r1 = self.start.distance(&self.foci[0]);
-        let r2 = self.start.distance(&self.foci[1]);
-
-        (r1 + r2) / 2.
     }
 
     /// Returns the semi minor axis (aka. b) of the allipse.
-    pub fn semi_minor_axis(&self) -> f64 {
-        let r1 = self.start.distance(&self.foci[0]);
-        let r2 = self.start.distance(&self.foci[1]);
-
-        (r1 * r2).sqrt()
+    pub fn semi_minor_axis(&self) -> Distance {
+        self.semi_major_axis * (1. - self.eccentricity.as_f64().powi(2)).sqrt()
     }
 
-    /// Returns the center of the ellipse.
-    pub fn center(&self) -> Coords {
-        (self.foci[0] + self.foci[1]) / 2.
+    /// Returns the distance from the center of the ellipse to one of its foci.
+    pub fn linear_eccentricity(&self) -> Distance {
+        self.semi_major_axis * self.eccentricity.as_f64()
     }
 
-    /// Returns the eccentricity of the ellipse.
-    pub fn eccentricity(&self) -> f64 {
-        (1. - (self.semi_minor_axis().powi(2) / self.semi_major_axis().powi(2))).sqrt()
-    }
-
-    /// Returns the linear eccentricity of the ellipse.
-    pub fn linear_eccentricity(&self) -> f64 {
-        (self.semi_major_axis().powi(2) - self.semi_minor_axis().powi(2)).sqrt()
-    }
-
-    pub fn transform<T: Transform>(self, transformation: T) -> Self {
-        Self {
-            start: self.start.transform(transformation),
-            foci: [
-                self.foci[0].transform(transformation),
-                self.foci[1].transform(transformation),
-            ],
-            theta: self.theta,
-        }
-    }
-
-    fn theta_z(&self) -> Radiant {
-        let translation = Translation::default().with_vector(self.center());
-        let right_focus = self.foci[1].transform(-translation);
-
-        let theta = right_focus.y().atan2(right_focus.x());
-
-        theta.into()
-    }
-
-    fn theta_y(&self) -> Radiant {
-        let translation = Translation::default().with_vector(self.center());
-        let right_focus = self.foci[1].transform(-translation);
-
-        let theta = right_focus.z().atan2(right_focus.x());
-
-        theta.into()
-    }
-
-    fn theta_x(&self) -> Radiant {
-        let translation = Translation::default().with_vector(self.center());
-        let right_focus = self.foci[1].transform(-translation);
-        let mut start = self.start.transform(-translation);
-
-        if self.foci[0] != self.foci[1] && right_focus.0.angle(&start.0) % PI != 0. {
-            let projection = start.0.dot(&right_focus.0) / right_focus.0.dot(&right_focus.0);
-
-            let translation =
-                Translation::default().with_vector((projection * right_focus.0).into());
-            start = start.transform(-translation);
-        }
-
-        let theta = start.z().atan2(start.y());
-
-        theta.into()
+    /// Return the position (in meters) of the given theta.
+    pub fn position(&self, theta: Radiant) -> Coords {
+        Coords::default()
+            .with_x(self.semi_major_axis.as_meters() * theta.as_f64().cos())
+            .with_y(self.semi_minor_axis().as_meters() * theta.as_f64().sin())
     }
 }
