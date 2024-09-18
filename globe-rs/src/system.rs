@@ -149,9 +149,7 @@ pub struct SystemState {
 
 impl SystemState {
     fn spin_at(mut time: Duration, body: &Body) -> Radiant {
-        time = Duration::from_secs_f64(
-            time.as_secs_f64() % (1. / body.rotation).as_secs_f64()
-        );
+        time = Duration::from_secs_f64(time.as_secs_f64() % (1. / body.rotation).as_secs_f64());
 
         (Radiant::from(body.rotation).as_f64() * time.as_secs() as f64).into()
     }
@@ -165,9 +163,10 @@ impl SystemState {
             return Default::default();
         };
 
-        orbit.position_at(time, parent.body)
-        .transform(Translation::default().with_vector(parent.position))
-        .transform(Translation::default().with_vector(orbit.focus()))
+        orbit
+            .position_at(time, parent.body)
+            .transform(Translation::default().with_vector(parent.position))
+            .transform(Translation::default().with_vector(orbit.focus()))
     }
 
     fn at<O: Orbit>(time: Duration, system: &System<O>, parent: Option<BodyPosition>) -> Self {

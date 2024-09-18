@@ -7,7 +7,10 @@ use bevy::{
     },
     sprite::{AlphaMode2d, MaterialMesh2dBundle, Mesh2dHandle},
 };
-use globe_rs::{cartesian::{transform::Translation, Coords}, Luminosity, SystemState};
+use globe_rs::{
+    cartesian::{transform::Translation, Coords},
+    Luminosity, SystemState,
+};
 
 use crate::{
     camera::MainCamera,
@@ -188,14 +191,14 @@ pub fn spawn_orbits<O: globe_rs::Orbit>(
     orbits.into_iter().for_each(|&orbit| {
         let mut orbit_points: Vec<[f32; 3]> = orbit
             .spec
-            .sample(1024)   
+            .sample(1024)
             .points
             .into_iter()
             .map(|coord| {
                 coord
-                .transform(Translation::default().with_vector(orbit.spec.focus()))
-                .transform(Translation::default().with_vector(orbit.focus))
-            })  
+                    .transform(Translation::default().with_vector(orbit.spec.focus()))
+                    .transform(Translation::default().with_vector(orbit.focus))
+            })
             .map(|point| [point.x() as f32, point.y() as f32, point.z() as f32])
             .collect();
 

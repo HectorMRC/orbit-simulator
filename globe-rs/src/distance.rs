@@ -55,7 +55,7 @@ impl Distance {
 
     /// Returns a [f64] representing the distance in kilometers.
     pub fn as_km(&self) -> f64 {
-        self.0.0
+        self.0 .0
     }
 
     /// Returns the absolute difference between self and the given distance.

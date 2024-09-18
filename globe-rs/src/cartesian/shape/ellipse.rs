@@ -46,7 +46,7 @@ impl Orbit for Ellipse {
 
         let mean_anomaly =
             Radiant::TWO_PI.as_f64() / self.period(orbitee).as_secs_f64() * time.as_secs_f64();
-        
+
         let mut eccentric_anomaly = if self.eccentricity.as_f64() < 0.8 {
             mean_anomaly
         } else {
@@ -58,7 +58,7 @@ impl Orbit for Ellipse {
             let f = eccentric_anomaly
                 - self.eccentricity.as_f64() * eccentric_anomaly.sin()
                 - mean_anomaly;
-            
+
             let f_prime = 1.0 - self.eccentricity.as_f64() * eccentric_anomaly.cos();
             eccentric_anomaly = eccentric_anomaly - f / f_prime;
         }

@@ -38,7 +38,7 @@ fn main() {
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT * 0.38700,
                     eccentricity: Ratio::from(0.206),
-                    ..Default::default()    
+                    ..Default::default()
                 }),
                 secondary: vec![],
             },
@@ -56,8 +56,8 @@ fn main() {
                 // }),
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT * 0.72300,
-                    eccentricity: Ratio::from(0.007 ),
-                    ..Default::default()    
+                    eccentricity: Ratio::from(0.007),
+                    ..Default::default()
                 }),
                 secondary: vec![],
             },
@@ -75,9 +75,9 @@ fn main() {
                 // }),
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT,
-                    eccentricity: Ratio::from(0.017 ),
-                    ..Default::default()    
-                }), 
+                    eccentricity: Ratio::from(0.017),
+                    ..Default::default()
+                }),
                 secondary: vec![globe_rs::System {
                     primary: Body {
                         name: Name::from_str("Moon").unwrap(),
@@ -92,9 +92,9 @@ fn main() {
                     // }),
                     orbit: Some(Ellipse {
                         semi_major_axis: Distance::km(384_748.),
-                        eccentricity: Ratio::from(0.0549006),   
-                        ..Default::default()    
-                    }), 
+                        eccentricity: Ratio::from(0.0549006),
+                        ..Default::default()
+                    }),
                     secondary: Default::default(),
                 }],
             },
@@ -113,8 +113,8 @@ fn main() {
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT * 1.52400,
                     eccentricity: Ratio::from(0.093),
-                    ..Default::default()    
-                }), 
+                    ..Default::default()
+                }),
                 secondary: vec![],
             },
         ],
