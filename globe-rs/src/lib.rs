@@ -29,7 +29,7 @@ pub use ratio::*;
 mod velocity;
 pub use velocity::*;
 
-mod math;
+// mod math;
 
 /// A [f64] that is always positive.
 #[derive(Debug, Default, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]

@@ -31,14 +31,12 @@ fn main() {
                     mass: Mass::kg(3.30104e23),
                     luminosity: Luminosity::ZERO,
                 },
-                // orbit: Some(Circ ularOrbitBuilder {
+                // orbit: Some(CircularOrbitBuilder {
                 //     distance: Distance::km(58_000_000.) + sun_radius + mercury_radius,
-                //     ..Default::default()
                 // }),
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT * 0.38700,
                     eccentricity: Ratio::from(0.206),
-                    ..Default::default()
                 }),
                 secondary: vec![],
             },
@@ -52,12 +50,10 @@ fn main() {
                 },
                 // orbit: Some(CircularOrbitBuilder {
                 //     distance: Distance::km(108_208_930.) + sun_radius + venus_radius,
-                //     ..Default::default()
                 // }),
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT * 0.72300,
                     eccentricity: Ratio::from(0.007),
-                    ..Default::default()
                 }),
                 secondary: vec![],
             },
@@ -71,12 +67,10 @@ fn main() {
                 },
                 // orbit: Some(CircularOrbitBuilder {
                 //     distance: Distance::km(150_950_000.) + sun_radius + earth_radius,
-                //     ..Default::default()
                 // }),
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT,
                     eccentricity: Ratio::from(0.017),
-                    ..Default::default()
                 }),
                 secondary: vec![globe_rs::System {
                     primary: Body {
@@ -88,12 +82,10 @@ fn main() {
                     },
                     // orbit: Some(CircularOrbitBuilder {
                     //     distance: Distance::km(384_400.) + earth_radius + moon_radius,
-                    //     ..Default::default()
                     // }),
                     orbit: Some(Ellipse {
                         semi_major_axis: Distance::km(384_748.),
                         eccentricity: Ratio::from(0.0549006),
-                        ..Default::default()
                     }),
                     secondary: Default::default(),
                 }],
@@ -108,12 +100,10 @@ fn main() {
                 },
                 // orbit: Some(CircularOrbitBuilder {
                 //     distance: Distance::km(228_000_000.) + sun_radius + mars_radius,
-                //     ..Default::default()
                 // }),
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT * 1.52400,
                     eccentricity: Ratio::from(0.093),
-                    ..Default::default()
                 }),
                 secondary: vec![],
             },

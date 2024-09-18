@@ -180,7 +180,7 @@ pub fn spawn_bodies<O>(
     );
 }
 
-pub fn spawn_orbits<O: globe_rs::Orbit>(
+pub fn spawn_orbits<O>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,

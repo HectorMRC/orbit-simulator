@@ -19,7 +19,6 @@ impl Sample for Ellipse {
     fn sample(&self, segments: usize) -> super::Shape {
         Shape {
             points: (0..segments)
-                .into_iter()
                 .map(|vertex_index| Radiant::TWO_PI / segments as f64 * vertex_index as f64)
                 .map(|theta| self.position(theta))
                 .collect(),
@@ -60,7 +59,7 @@ impl Orbit for Ellipse {
                 - mean_anomaly;
 
             let f_prime = 1.0 - self.eccentricity.as_f64() * eccentric_anomaly.cos();
-            eccentric_anomaly = eccentric_anomaly - f / f_prime;
+            eccentric_anomaly -= f / f_prime;
         }
 
         let true_anomaly = 2.0

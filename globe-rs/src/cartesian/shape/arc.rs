@@ -22,7 +22,6 @@ impl Sample for Circle {
     fn sample(&self, segments: usize) -> super::Shape {
         Shape {
             points: (0..segments)
-                .into_iter()
                 .map(|index| {
                     let theta = (Radiant::TWO_PI.as_f64() * index as f64 / segments as f64).into();
                     let rotation = Rotation::default()
