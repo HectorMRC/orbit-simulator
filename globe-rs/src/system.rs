@@ -28,6 +28,11 @@ impl Body {
     pub fn gravitational_parameter(&self) -> f64 {
         GRAVITATIONAL_CONSTANT * self.mass.as_kg()
     }
+
+    /// Returns true if, and only if, the body has a luminousity other than zero.
+    pub fn is_luminous(&self) -> bool {
+        self.luminosity != Luminosity::ZERO
+    }
 }
 
 /// Describes the habitable zone around a body.

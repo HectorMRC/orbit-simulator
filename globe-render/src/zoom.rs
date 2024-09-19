@@ -1,6 +1,7 @@
 use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
+    render::camera::ScalingMode,
 };
 
 use crate::{camera::MainCamera, cursor::Cursor};
@@ -24,12 +25,17 @@ pub fn logarithmic(
             MouseScrollUnit::Pixel => 1., // using fine-grained hardware (e.g. touchpads)
         };
 
-        let mut scale = projection.scale.ln();
-        scale += 0.1 * scroll.y * orientation;
-        scale = scale.exp();
+        let scale = match projection.scaling_mode {
+            ScalingMode::WindowSize(inv_scale) => 1. / inv_scale,
+            _ => panic!("scaling mode must be window size"),
+        };
 
-        let scale_ratio = projection.scale / scale;
-        projection.scale = scale;
+        let mut new_scale = scale.ln();
+        new_scale += 0.1 * scroll.y * orientation;
+        new_scale = new_scale.exp();
+
+        let scale_ratio = scale / new_scale;
+        projection.scaling_mode = ScalingMode::WindowSize(1. / new_scale);
 
         let relative_cursor_before = cursor.position - transform.translation;
         let relative_cursor_after = relative_cursor_before * scale_ratio;

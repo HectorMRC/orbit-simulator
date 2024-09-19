@@ -1,11 +1,11 @@
-#import bevy_sprite::mesh2d_vertex_output::VertexOutput
+#import bevy_pbr::forward_io::VertexOutput
 
 @group(2) @binding(0) var<storage, read> colors: array<vec4<f32>>;
 @group(2) @binding(1) var<storage, read> segments: array<f32>;
 @group(2) @binding(2) var<uniform> center: vec3<f32>;
 
 @fragment
-fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
+fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> { 
     let fragment_radius = distance(mesh.world_position.xyz, center);
 
     var final_color = colors[0];
@@ -17,7 +17,7 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
             }
 
             break;
-        }
+        }    
 
         if i == arrayLength(&segments) - 1 {
             final_color = colors[i];

@@ -3,7 +3,12 @@ use std::ops::Deref;
 use bevy::{
     prelude::*,
     render::{
-        mesh::PrimitiveTopology, render_asset::RenderAssetUsages, storage::ShaderStorageBuffer,
+        camera::ScalingMode,
+        mesh::{
+            AnnulusMeshBuilder, CircleMeshBuilder, PrimitiveTopology, SphereKind, SphereMeshBuilder,
+        },
+        render_asset::RenderAssetUsages,
+        storage::ShaderStorageBuffer,
     },
     sprite::{AlphaMode2d, MaterialMesh2dBundle, Mesh2dHandle},
 };
@@ -15,15 +20,13 @@ use globe_rs::{
 use crate::{
     camera::MainCamera,
     color,
-    material::{
-        LinearGradientMaterial, LinearGradientMaterialBuilder, RadialGradientMaterial,
-        RadialGradientMaterialBuilder,
-    },
-    shape,
+    material::{RadialGradientMaterial, RadialGradientMaterialBuilder},
     time::WorldTime,
 };
 
-const HABITABLE_ZONE_Z_PLANE: f32 = -1.;
+const ORBIT_Z_PLANE: f32 = -1.;
+const HABITABLE_ZONE_Z_PLANE: f32 = -2.;
+const HELIOSPHERE_Z_PLANE: f32 = -3.;
 
 /// The orbital system.
 #[derive(Resource)]
@@ -96,7 +99,7 @@ pub fn spawn_bodies<O>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
-    mut materials: ResMut<Assets<LinearGradientMaterial>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
     system: Res<System<O>>,
     time: Res<WorldTime>,
 ) where
@@ -106,7 +109,7 @@ pub fn spawn_bodies<O>(
         commands: &mut Commands,
         meshes: &mut Assets<Mesh>,
         buffers: &mut ResMut<Assets<ShaderStorageBuffer>>,
-        materials: &mut Assets<LinearGradientMaterial>,
+        materials: &mut Assets<ColorMaterial>,
         system: &globe_rs::System<O>,
         state: SystemState,
         focus: Option<Coords>,
@@ -120,25 +123,22 @@ pub fn spawn_bodies<O>(
         );
 
         let radius = system.primary.radius.as_meters() as f32;
-        let colors = if system.primary.luminosity == Luminosity::ZERO {
-            (color::KHAKI, color::BATTLESHIP_GRAY)
-        } else {
-            let start = color::PERSIAN_ORANGE;
-            (start, start.lighter(0.2))
-        };
-
         let material = MaterialMesh2dBundle {
-            mesh: Mesh2dHandle(meshes.add(shape::circle_mesh(radius))),
+            mesh: Mesh2dHandle(meshes.add(CircleMeshBuilder {
+                circle: Circle::new(radius),
+                resolution: 255,
+            })),
+            material: materials.add(ColorMaterial {
+                color: if system.primary.is_luminous() {
+                    color::PERSIAN_ORANGE
+                } else {
+                    color::KHAKI
+                },
+                alpha_mode: AlphaMode2d::Blend,
+                ..Default::default()
+            }),
             transform,
-            material: materials.add(
-                LinearGradientMaterialBuilder::new(buffers)
-                    .with_center(transform.translation)
-                    .with_theta(-state.rotation.as_f64() as f32)
-                    .with_segment(colors.0, 0.)
-                    .with_segment(colors.1, 0.)
-                    .build(),
-            ),
-            ..default()
+            ..Default::default()
         };
 
         let body = Body {
@@ -214,10 +214,11 @@ pub fn spawn_orbits<O>(
         commands.spawn((
             MaterialMesh2dBundle {
                 mesh: Mesh2dHandle(meshes.add(orbit_mesh)),
+                transform: Transform::from_xyz(0., 0., ORBIT_Z_PLANE),
                 material: materials.add(ColorMaterial {
                     color: color::DAVYS_GRAY,
                     alpha_mode: AlphaMode2d::Blend,
-                    ..Default::default()
+                    ..default()
                 }),
                 ..default()
             },
@@ -235,6 +236,10 @@ pub fn spawn_habitable_zone(
     bodies: Query<&Body>,
 ) {
     let (projection, camera) = camera.single();
+    let scale = match projection.scaling_mode {
+        ScalingMode::WindowSize(inv_scale) => 1. / inv_scale,
+        _ => panic!("scaling mode must be window size"),
+    };
 
     bodies
         .iter()
@@ -255,11 +260,14 @@ pub fn spawn_habitable_zone(
             let outer_radius = hz.outer_edge.as_meters() as f32;
             let quarter = (outer_radius - inner_radius) / 4.;
 
-            let transparency = f32::min(0.1, projection.scale / camera.initial_scale * 0.1);
+            let transparency = f32::min(0.1, scale / camera.initial_scale * 0.1);
 
             commands.spawn((
                 MaterialMesh2dBundle {
-                    mesh: Mesh2dHandle(meshes.add(shape::annulus_mesh(inner_radius, outer_radius))),
+                    mesh: Mesh2dHandle(meshes.add(AnnulusMeshBuilder {
+                        annulus: Annulus::new(inner_radius, outer_radius),
+                        resolution: 255,
+                    })),
                     transform,
                     material: materials.add(
                         RadialGradientMaterialBuilder::new(&mut buffers)
@@ -281,4 +289,33 @@ pub fn spawn_habitable_zone(
                 HabitableZone,
             ));
         });
+}
+
+pub fn spawn_heliosphere<O>(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
+    mut materials: ResMut<Assets<RadialGradientMaterial>>,
+    system: Res<System<O>>,
+) where
+    O: 'static + globe_rs::Orbit + Sync + Send,
+{
+    let system_radius = 1.1 * system.radius().as_meters() as f32;
+    let shadow_radius = 1.1 * system_radius;
+
+    commands.spawn(MaterialMesh2dBundle {
+        mesh: Mesh2dHandle(meshes.add(CircleMeshBuilder {
+            circle: Circle::new(shadow_radius),
+            resolution: 255,
+        })),
+        transform: Transform::from_xyz(0., 0., HELIOSPHERE_Z_PLANE),
+        material: materials.add(
+            RadialGradientMaterialBuilder::new(&mut buffers)
+                .with_segment(color::EERIE_BLACK, system_radius)
+                .with_segment(color::NIGHT.darker(0.01), system_radius)
+                .with_segment(color::NIGHT.with_alpha(0.), shadow_radius)
+                .build(),
+        ),
+        ..Default::default()
+    });
 }

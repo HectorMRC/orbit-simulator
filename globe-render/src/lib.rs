@@ -7,7 +7,6 @@ mod color;
 mod cursor;
 mod material;
 mod scroll;
-mod shape;
 mod subject;
 pub mod system;
 mod time;
@@ -39,7 +38,7 @@ where
     O: 'static + globe_rs::Orbit + Sync + Send,
 {
     app.add_systems(Startup, camera::spawn::<O>)
-        // .add_systems(Startup, system::spawn_ellipse)
+        .add_systems(Startup, system::spawn_heliosphere::<O>)
         .add_systems(
             Update,
             (

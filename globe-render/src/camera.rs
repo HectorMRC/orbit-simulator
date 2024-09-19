@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::camera::ScalingMode};
 
 use crate::{color, system::System};
 
@@ -15,28 +15,25 @@ where
 {
     let window = window.single();
 
-    let system_radius = (system.radius() + system.primary.radius).as_meters() as f32;
-    let scale =
-        (2. * system_radius) / f32::min(window.resolution.width(), window.resolution.height());
+    let system_radius = system.radius().as_meters() as f32;
+    let initial_scale =
+        (2. * system_radius) / window.resolution.width().min(window.resolution.height());
 
     commands.spawn((
         Camera2dBundle {
             camera: Camera {
                 clear_color: ClearColorConfig::Custom(color::NIGHT),
-                hdr: true,
                 ..default()
             },
             projection: OrthographicProjection {
-                near: -system_radius,
+                near: 0.,
                 far: system_radius,
-                scale,
-                ..default()
+                viewport_origin: Vec2::new(0.5, 0.5),
+                scaling_mode: ScalingMode::WindowSize(1. / initial_scale),
+                area: Default::default(),
             },
-            ..default()
+            ..Default::default()
         },
-        // BloomSettings::NATURAL,
-        MainCamera {
-            initial_scale: scale,
-        },
+        MainCamera { initial_scale },
     ));
 }
