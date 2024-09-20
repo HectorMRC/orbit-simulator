@@ -38,7 +38,6 @@ where
     O: 'static + globe_rs::Orbit + Sync + Send,
 {
     app.add_systems(Startup, camera::spawn::<O>)
-        .add_systems(Startup, system::spawn_heliosphere::<O>)
         .add_systems(
             Update,
             (

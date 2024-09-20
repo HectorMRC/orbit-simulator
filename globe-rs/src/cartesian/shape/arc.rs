@@ -12,18 +12,32 @@ use crate::{
 use super::{Sample, Shape};
 
 /// A circumference.
-#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Circle {
     /// The radius of the circle.
     pub radius: Distance,
+    /// The initial radiant of the circle.
+    pub initial_theta: Radiant,
+    /// The total radiants of the circle to sample.
+    pub theta: Radiant,
+}
+
+impl Default for Circle {
+    fn default() -> Self {
+        Self {
+            radius: Default::default(),
+            initial_theta: Default::default(),
+            theta: Radiant::TWO_PI,
+        }
+    }
 }
 
 impl Sample for Circle {
     fn sample(&self, segments: usize) -> super::Shape {
         Shape {
             points: (0..segments)
-                .map(|index| {
-                    let theta = (Radiant::TWO_PI.as_f64() * index as f64 / segments as f64).into();
+                .map(|vertex_index| {
+                    let theta = self.initial_theta + Radiant::TWO_PI / segments as f64 * vertex_index as f64;
                     let rotation = Rotation::default()
                         .with_axis(Coords::default().with_z(1.))
                         .with_theta(theta);
@@ -38,7 +52,7 @@ impl Sample for Circle {
 
 /// An orbit in which the orbiting body moves in a perfect circle around the central body.
 impl Orbit for Circle {
-    fn velocity_at(&self, _: Radiant, orbitee: &Body) -> Velocity {
+    fn velocity_at(&self, _: Duration, orbitee: &Body) -> Velocity {
         Velocity::meters_sec(
             (GRAVITATIONAL_CONSTANT * orbitee.mass.as_kg() / self.radius.as_meters()).sqrt(),
         )

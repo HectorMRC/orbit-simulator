@@ -7,19 +7,35 @@ use crate::{cartesian::Coords, Body, Distance, Orbit, Radiant, Ratio, Velocity};
 use super::{Sample, Shape};
 
 /// An ellipse.
-#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Ellipse {
     /// The semi-major axis of the ellipse.
     pub semi_major_axis: Distance,
     /// The eccentricity of the ellipse.
     pub eccentricity: Ratio,
+    /// The initial radiant of the ellipse.
+    pub initial_theta: Radiant,
+    /// The total radiants of the ellipse to sample.
+    pub theta: Radiant,
+}
+
+impl Default for Ellipse {
+    fn default() -> Self {
+        Self {
+            semi_major_axis: Default::default(),
+            eccentricity: Default::default(),
+            initial_theta: Default::default(),
+            theta: Radiant::TWO_PI,
+        }
+    }
 }
 
 impl Sample for Ellipse {
     fn sample(&self, segments: usize) -> super::Shape {
         Shape {
             points: (0..segments)
-                .map(|vertex_index| Radiant::TWO_PI / segments as f64 * vertex_index as f64)
+                .map(|vertex_index| self.theta / segments as f64 * vertex_index as f64)
+                .map(|theta| theta + self.initial_theta)
                 .map(|theta| self.position(theta))
                 .collect(),
         }
@@ -28,10 +44,12 @@ impl Sample for Ellipse {
 
 impl Orbit for Ellipse {
     /// Assumes the central body is located on the right foci of the ellipse.
-    fn velocity_at(&self, theta: Radiant, orbitee: &Body) -> Velocity {
+    fn velocity_at(&self, mut time: Duration, orbitee: &Body) -> Velocity {
+        time = Duration::from_secs_f64(time.as_secs_f64() % self.period(orbitee).as_secs_f64());
+
         let radius = Coords::default()
             .with_x(self.linear_eccentricity().as_meters())
-            .distance(&self.position(theta));
+            .distance(&self.position_at(time, orbitee));
 
         Velocity::meters_sec(
             (2. * orbitee.gravitational_parameter()

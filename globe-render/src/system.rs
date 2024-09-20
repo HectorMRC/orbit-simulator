@@ -4,9 +4,7 @@ use bevy::{
     prelude::*,
     render::{
         camera::ScalingMode,
-        mesh::{
-            AnnulusMeshBuilder, CircleMeshBuilder, PrimitiveTopology, SphereKind, SphereMeshBuilder,
-        },
+        mesh::{AnnulusMeshBuilder, CircleMeshBuilder, PrimitiveTopology},
         render_asset::RenderAssetUsages,
         storage::ShaderStorageBuffer,
     },
@@ -14,7 +12,7 @@ use bevy::{
 };
 use globe_rs::{
     cartesian::{transform::Translation, Coords},
-    Luminosity, SystemState,
+    Luminosity, SystemState, Velocity,
 };
 
 use crate::{
@@ -53,6 +51,7 @@ impl<O: globe_rs::Orbit> From<globe_rs::System<O>> for System<O> {
 pub struct Body {
     pub spec: globe_rs::Body,
     pub position: Coords,
+    pub velocity: Velocity,
 }
 
 impl Deref for Body {
@@ -144,6 +143,7 @@ pub fn spawn_bodies<O>(
         let body = Body {
             spec: system.primary.clone(),
             position: state.position,
+            velocity: state.velocity,
         };
 
         if let (Some(focus), Some(orbit)) = (focus, system.orbit) {
@@ -301,7 +301,7 @@ pub fn spawn_heliosphere<O>(
     O: 'static + globe_rs::Orbit + Sync + Send,
 {
     let system_radius = 1.1 * system.radius().as_meters() as f32;
-    let shadow_radius = 1.1 * system_radius;
+    let shadow_radius = 1.05 * system_radius;
 
     commands.spawn(MaterialMesh2dBundle {
         mesh: Mesh2dHandle(meshes.add(CircleMeshBuilder {
@@ -312,7 +312,7 @@ pub fn spawn_heliosphere<O>(
         material: materials.add(
             RadialGradientMaterialBuilder::new(&mut buffers)
                 .with_segment(color::EERIE_BLACK, system_radius)
-                .with_segment(color::NIGHT.darker(0.01), system_radius)
+                .with_segment(Color::BLACK.with_alpha(0.5), system_radius)
                 .with_segment(color::NIGHT.with_alpha(0.), shadow_radius)
                 .build(),
         ),

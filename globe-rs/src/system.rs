@@ -4,8 +4,7 @@ use alvidir::name::Name;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    cartesian::{transform::Translation, Coords},
-    Distance, Frequency, Luminosity, Mass, Orbit, Radiant, GRAVITATIONAL_CONSTANT,
+    cartesian::{transform::Translation, Coords}, Distance, Frequency, Luminosity, Mass, Orbit, Radiant, Velocity, GRAVITATIONAL_CONSTANT
 };
 
 /// An arbitrary spherical body.
@@ -148,6 +147,8 @@ pub struct SystemState {
     pub rotation: Radiant,
     /// Where is located the center of the primary body.
     pub position: Coords,
+    /// At which velocity is the system moving.
+    pub velocity: Velocity,
     /// The state of the secondary bodies.
     pub secondary: Vec<SystemState>,
 }
@@ -174,10 +175,23 @@ impl SystemState {
             .transform(Translation::default().with_vector(orbit.focus()))
     }
 
+    fn velocity_at<O: Orbit>(
+        time: Duration,
+        system: &System<O>,
+        parent: Option<BodyPosition>,
+    ) -> Velocity {
+        let (Some(parent), Some(orbit)) = (parent, system.orbit) else {
+            return Default::default();
+        };
+
+        orbit.velocity_at(time, parent.body)
+    }
+
     fn at<O: Orbit>(time: Duration, system: &System<O>, parent: Option<BodyPosition>) -> Self {
         let mut state = SystemState {
             rotation: Self::spin_at(time, &system.primary),
             position: Self::position_at::<O>(time, system, parent),
+            velocity: Self::velocity_at::<O>(time, system, parent),
             ..Default::default()
         };
 

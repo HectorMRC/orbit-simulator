@@ -3,7 +3,7 @@ use std::time::Duration;
 use crate::{
     cartesian::{shape::Sample, Coords},
     system::Body,
-    Distance, Frequency, Radiant, Velocity,
+    Distance, Frequency, Velocity,
 };
 
 /// The gravitational constant as N⋅m^2⋅kg^−2.
@@ -12,7 +12,7 @@ pub const GRAVITATIONAL_CONSTANT: f64 = 6.674010551359e-11;
 /// The orbit of an object around a central body.
 pub trait Orbit: Copy + Sample {
     /// The orbital velocity of the object at ha given theta.
-    fn velocity_at(&self, theta: Radiant, orbitee: &Body) -> Velocity;
+    fn velocity_at(&self, time: Duration, orbitee: &Body) -> Velocity;
 
     /// Returns the position of the object at the given theta of the orbit after
     /// a given duration.
