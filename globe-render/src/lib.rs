@@ -1,5 +1,5 @@
 use bevy::{prelude::*, sprite::Material2dPlugin};
-use globe_rs::cartesian::shape::Ellipse;
+use globe_rs::cartesian::shape::{Ellipse, WithSector};
 use material::{LinearGradientMaterial, RadialGradientMaterial};
 
 mod camera;
@@ -35,7 +35,7 @@ impl Plugin for Globe2DPlugin {
 
 fn add_orbital_system<O>(app: &mut App) -> &mut App
 where
-    O: 'static + globe_rs::Orbit + Sync + Send,
+    O: 'static + globe_rs::Orbit + WithSector + Sync + Send,
 {
     app.add_systems(Startup, camera::spawn::<O>)
         .add_systems(

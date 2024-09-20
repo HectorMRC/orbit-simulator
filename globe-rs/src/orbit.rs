@@ -11,6 +11,12 @@ pub const GRAVITATIONAL_CONSTANT: f64 = 6.674010551359e-11;
 
 /// The orbit of an object around a central body.
 pub trait Orbit: Copy + Sample {
+    /// The minimum velocity of the object across the orbit.
+    fn min_velocity(&self, orbitee: &Body) -> Velocity;
+
+    /// The maximum velocity of the object across the orbit.
+    fn max_velocity(&self, orbitee: &Body) -> Velocity;
+
     /// The orbital velocity of the object at ha given theta.
     fn velocity_at(&self, time: Duration, orbitee: &Body) -> Velocity;
 

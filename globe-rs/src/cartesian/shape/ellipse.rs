@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{cartesian::Coords, Body, Distance, Orbit, Radiant, Ratio, Velocity};
 
-use super::{Sample, Shape};
+use super::{Sample, Shape, WithSector};
 
 /// An ellipse.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -43,6 +43,20 @@ impl Sample for Ellipse {
 }
 
 impl Orbit for Ellipse {
+    fn min_velocity(&self, orbitee: &Body) -> Velocity {
+        self.velocity(
+            self.linear_eccentricity() + self.semi_major_axis,
+            orbitee
+        )
+    }
+
+    fn max_velocity(&self, orbitee: &Body) -> Velocity {        
+        self.velocity(
+            self.linear_eccentricity().abs_diff(self.semi_major_axis),
+            orbitee
+        )
+    }
+
     /// Assumes the central body is located on the right foci of the ellipse.
     fn velocity_at(&self, mut time: Duration, orbitee: &Body) -> Velocity {
         time = Duration::from_secs_f64(time.as_secs_f64() % self.period(orbitee).as_secs_f64());
@@ -51,11 +65,7 @@ impl Orbit for Ellipse {
             .with_x(self.linear_eccentricity().as_meters())
             .distance(&self.position_at(time, orbitee));
 
-        Velocity::meters_sec(
-            (2. * orbitee.gravitational_parameter()
-                * ((1. / radius) - (1. / (2. * self.semi_major_axis.as_meters()))))
-            .sqrt(),
-        )
+        self.velocity(Distance::meters(radius), orbitee)
     }
 
     fn position_at(&self, mut time: Duration, orbitee: &Body) -> Coords {
@@ -117,6 +127,18 @@ impl Orbit for Ellipse {
     }
 }
 
+impl WithSector for Ellipse {
+    fn with_initial_theta(mut self, theta: Radiant) -> Self {
+        self.initial_theta = theta;
+        self
+    }
+
+    fn with_theta(mut self, theta: Radiant) -> Self {
+        self.theta = theta;
+        self
+    }
+}
+
 impl Ellipse {
     pub fn with_semi_major_axis(mut self, semi_major_axis: Distance) -> Self {
         self.semi_major_axis = semi_major_axis;
@@ -143,5 +165,13 @@ impl Ellipse {
         Coords::default()
             .with_x(self.semi_major_axis.as_meters() * theta.as_f64().cos())
             .with_y(self.semi_minor_axis().as_meters() * theta.as_f64().sin())
+    }
+
+    fn velocity(&self, radius: Distance, orbitee: &Body) -> Velocity {
+        Velocity::meters_sec(
+            (2. * orbitee.gravitational_parameter()
+                * ((1. / radius.as_meters()) - (1. / (2. * self.semi_major_axis.as_meters()))))
+            .sqrt(),
+        )
     }
 }

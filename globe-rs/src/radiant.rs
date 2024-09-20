@@ -1,6 +1,6 @@
 use std::{
     f64::consts::PI,
-    ops::{Add, Div, Mul},
+    ops::{Add, Div, Mul, Sub},
 };
 
 use serde::{Deserialize, Serialize};
@@ -42,6 +42,14 @@ impl Add for Radiant {
     }
 }
 
+impl Sub for Radiant {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        (self.0 .0 - rhs.0 .0).into()
+    }
+}
+
 impl Mul<f64> for Radiant {
     type Output = Self;
 
@@ -69,6 +77,11 @@ impl Radiant {
     /// Returns the amount of radiants as a [f64].
     pub fn as_f64(&self) -> f64 {
         self.0 .0
+    }
+
+    /// Returns the absolute difference between self and the given radiant.
+    pub fn abs_diff(self, rhs: Self) -> Self {
+        Self((self.0 .0 - rhs.0 .0).abs().into())
     }
 }
 

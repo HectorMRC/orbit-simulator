@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{f64::consts::FRAC_PI_2, ops::Deref};
 
 use bevy::{
     prelude::*,
@@ -11,8 +11,7 @@ use bevy::{
     sprite::{AlphaMode2d, MaterialMesh2dBundle, Mesh2dHandle},
 };
 use globe_rs::{
-    cartesian::{transform::Translation, Coords},
-    Luminosity, SystemState, Velocity,
+    cartesian::{shape::WithSector, transform::Translation, Coords}, Luminosity      , SystemState, Velocity
 };
 
 use crate::{
@@ -52,6 +51,8 @@ pub struct Body {
     pub spec: globe_rs::Body,
     pub position: Coords,
     pub velocity: Velocity,
+    pub min_velocity: Velocity,
+    pub max_velocity: Velocity,
 }
 
 impl Deref for Body {
@@ -111,7 +112,7 @@ pub fn spawn_bodies<O>(
         materials: &mut Assets<ColorMaterial>,
         system: &globe_rs::System<O>,
         state: SystemState,
-        focus: Option<Coords>,
+        parent: Option<(&globe_rs::Body, Coords)>,
     ) where
         O: 'static + globe_rs::Orbit + Sync + Send,
     {
@@ -144,10 +145,16 @@ pub fn spawn_bodies<O>(
             spec: system.primary.clone(),
             position: state.position,
             velocity: state.velocity,
+            min_velocity: Default::default(),
+            max_velocity: Default::default(),
         };
 
-        if let (Some(focus), Some(orbit)) = (focus, system.orbit) {
-            commands.spawn((material, body, Orbit { focus, spec: orbit }));
+        if let (Some((orbitee, focus)), Some(orbit)) = (parent, system.orbit) {
+            commands.spawn((material, Body {
+                min_velocity: orbit.min_velocity(orbitee),
+                max_velocity: orbit.max_velocity(orbitee),
+                ..body
+            }, Orbit { focus, spec: orbit }));
         } else {
             commands.spawn((material, body));
         }
@@ -164,7 +171,7 @@ pub fn spawn_bodies<O>(
                     materials,
                     subsystem,
                     substate,
-                    Some(state.position),
+                    Some((&system.primary, state.position)),
                 )
             });
     }
@@ -184,13 +191,18 @@ pub fn spawn_orbits<O>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    orbits: Query<&Orbit<O>>,
+    orbits: Query<(&Body, &Orbit<O>), With<Orbit<O>>>,
 ) where
-    O: 'static + globe_rs::Orbit + Sync + Send,
+    O: 'static + globe_rs::Orbit + WithSector + Sync + Send,
 {
-    orbits.into_iter().for_each(|&orbit| {
-        let mut orbit_points: Vec<[f32; 3]> = orbit
+    orbits.into_iter().for_each(|(body, &orbit)| {
+        let current_radiant = body.position.y().atan2(body.position.x());
+        let trail_radiants = FRAC_PI_2 * body.velocity.as_meters_sec() / body.max_velocity.as_meters_sec();
+
+        let orbit_points: Vec<[f32; 3]> = orbit
             .spec
+            .with_initial_theta((current_radiant-trail_radiants).into())   
+            .with_theta(trail_radiants.into())     
             .sample(1024)
             .points
             .into_iter()
@@ -203,7 +215,7 @@ pub fn spawn_orbits<O>(
             .collect();
 
         // ensure the mesh is closed.
-        orbit_points.push(orbit_points[0]);
+        // orbit_points.push(orbit_points[0]);
 
         let orbit_mesh = Mesh::new(
             PrimitiveTopology::LineStrip,

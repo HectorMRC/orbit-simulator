@@ -9,7 +9,7 @@ use crate::{
     Distance, Radiant, Velocity,
 };
 
-use super::{Sample, Shape};
+use super::{Sample, Shape, WithSector};
 
 /// A circumference.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -52,10 +52,18 @@ impl Sample for Circle {
 
 /// An orbit in which the orbiting body moves in a perfect circle around the central body.
 impl Orbit for Circle {
-    fn velocity_at(&self, _: Duration, orbitee: &Body) -> Velocity {
+    fn min_velocity(&self, orbitee: &Body) -> Velocity {
         Velocity::meters_sec(
             (GRAVITATIONAL_CONSTANT * orbitee.mass.as_kg() / self.radius.as_meters()).sqrt(),
         )
+    }
+
+    fn max_velocity(&self, orbitee: &Body) -> Velocity {
+        self.min_velocity(orbitee)
+    }
+
+    fn velocity_at(&self, _: Duration, orbitee: &Body) -> Velocity {
+        self.min_velocity(orbitee)
     }
 
     fn position_at(&self, mut time: Duration, orbitee: &Body) -> Coords {
@@ -89,6 +97,18 @@ impl Orbit for Circle {
 
     fn radius(&self) -> Distance {
         self.radius
+    }
+}
+
+impl WithSector for Circle {
+    fn with_initial_theta(mut self, theta: Radiant) -> Self {
+        self.initial_theta = theta;
+        self
+    }
+
+    fn with_theta(mut self, theta: Radiant) -> Self {
+        self.theta = theta;
+        self
     }
 }
 
