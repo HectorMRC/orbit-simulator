@@ -2,7 +2,7 @@ use std::{f64::consts::PI, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{cartesian::Coords, Body, Distance, Orbit, Radiant, Ratio, Velocity};
+use crate::{cartesian::Coords, Body, Distance, Orbit, Radian, Ratio, Velocity};
 
 use super::{Sample, Shape};
 
@@ -14,11 +14,11 @@ pub struct Ellipse {
     /// The eccentricity of the ellipse.
     pub eccentricity: Ratio,
     /// The initial radiant of the ellipse.
-    pub initial_theta: Radiant,
+    pub initial_theta: Radian,
     /// The direction of the ellipse.
     pub clockwise: bool,
     /// The total radiants of the ellipse to sample.
-    pub theta: Radiant,
+    pub theta: Radian,
 }
 
 impl Default for Ellipse {
@@ -28,13 +28,13 @@ impl Default for Ellipse {
             eccentricity: Default::default(),
             initial_theta: Default::default(),
             clockwise: Default::default(),
-            theta: Radiant::TWO_PI,
+            theta: Radian::TWO_PI,
         }
     }
 }
 
 impl Sample for Ellipse {
-    fn with_initial_theta(mut self, theta: Radiant) -> Self {
+    fn with_initial_theta(mut self, theta: Radian) -> Self {
         self.initial_theta = theta;
         self
     }
@@ -83,11 +83,11 @@ impl Orbit for Ellipse {
         self.position(self.theta_at(time, orbitee))
     }
 
-    fn theta_at(&self, mut time: Duration, orbitee: &Body) -> Radiant {
+    fn theta_at(&self, mut time: Duration, orbitee: &Body) -> Radian {
         time = Duration::from_secs_f64(time.as_secs_f64() % self.period(orbitee).as_secs_f64());
 
         let mean_anomaly =
-            Radiant::TWO_PI.as_f64() / self.period(orbitee).as_secs_f64() * time.as_secs_f64();
+            Radian::TWO_PI.as_f64() / self.period(orbitee).as_secs_f64() * time.as_secs_f64();
 
         let mut eccentric_anomaly = if self.eccentricity.as_f64() < 0.8 {
             mean_anomaly
@@ -112,7 +112,7 @@ impl Orbit for Ellipse {
 
     fn period(&self, orbitee: &Body) -> Duration {
         Duration::from_secs_f64(
-            Radiant::TWO_PI.as_f64()
+            Radian::TWO_PI.as_f64()
                 * (self.semi_major_axis.as_meters().powi(3) / orbitee.gravitational_parameter())
                     .sqrt(),
         )
@@ -162,7 +162,7 @@ impl Ellipse {
     }
 
     /// Return the position (in meters) of the given theta.
-    pub fn position(&self, theta: Radiant) -> Coords {
+    pub fn position(&self, theta: Radian) -> Coords {
         Coords::default()
             .with_x(self.semi_major_axis.as_meters() * theta.as_f64().cos())
             .with_y(self.semi_minor_axis().as_meters() * theta.as_f64().sin())

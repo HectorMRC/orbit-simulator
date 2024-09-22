@@ -1,11 +1,11 @@
-use std::{ops::Div, time::Duration};
+use std::{fmt::Debug, ops::Div, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
 use crate::PositiveFloat;
 
 /// The frequency at which an specific event occurs per unit of time.
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Frequency(PositiveFloat);
 
 impl Div<Frequency> for f64 {
@@ -13,6 +13,12 @@ impl Div<Frequency> for f64 {
 
     fn div(self, rhs: Frequency) -> Self::Output {
         Duration::from_secs_f64(self / rhs.as_hz())
+    }
+}
+
+impl Debug for Frequency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Frequency").field(&format!("{} hz", self.0)).finish()
     }
 }
 

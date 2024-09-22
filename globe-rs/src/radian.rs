@@ -1,18 +1,17 @@
 use std::{
-    f64::consts::PI,
-    ops::{Add, Div, Mul, Sub},
+    f64::consts::PI, fmt::Debug, ops::{Add, Div, Mul, Sub}
 };
 
 use serde::{Deserialize, Serialize};
 
 use crate::{Frequency, PositiveFloat};
 
-/// The [radiant](https://en.wikipedia.org/wiki/Radian) unit, which is always a positive number
+/// The [radian](https://en.wikipedia.org/wiki/Radian) unit, which is always a positive number
 /// within the range of [0, 2π].
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct Radiant(PositiveFloat);
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct Radian(PositiveFloat);
 
-impl From<f64> for Radiant {
+impl From<f64> for Radian {
     fn from(value: f64) -> Self {
         if (0. ..=Self::TWO_PI.as_f64()).contains(&value) {
             return Self(value.into());
@@ -27,14 +26,14 @@ impl From<f64> for Radiant {
     }
 }
 
-impl From<Frequency> for Radiant {
+impl From<Frequency> for Radian {
     /// The radiants per seconds the frequency represents.
     fn from(value: Frequency) -> Self {
         (value.as_hz() * Self::TWO_PI.as_f64()).into()
     }
 }
 
-impl Add for Radiant {
+impl Add for Radian {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -42,7 +41,7 @@ impl Add for Radiant {
     }
 }
 
-impl Sub for Radiant {
+impl Sub for Radian {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -50,7 +49,7 @@ impl Sub for Radiant {
     }
 }
 
-impl Mul<f64> for Radiant {
+impl Mul<f64> for Radian {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
@@ -58,7 +57,7 @@ impl Mul<f64> for Radiant {
     }
 }
 
-impl Div<f64> for Radiant {
+impl Div<f64> for Radian {
     type Output = Self;
 
     fn div(self, rhs: f64) -> Self::Output {
@@ -66,7 +65,13 @@ impl Div<f64> for Radiant {
     }
 }
 
-impl Radiant {
+impl Debug for Radian {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Radian").field(&format!("{} rad, {}º", self.0, self.0.0 / PI * 180.)).finish()
+    }
+}
+
+impl Radian {
     pub const TWO_PI: Self = Self(PositiveFloat(2. * PI));
 
     /// Returns true if, and only if, self is exactly 2π, which implies a rotation of 360 degrees.
@@ -89,7 +94,7 @@ impl Radiant {
 mod tests {
     use std::f64::consts::{FRAC_PI_2, PI};
 
-    use crate::Radiant;
+    use crate::Radian;
 
     #[test]
     fn radiant_must_not_exceed_boundaries() {
@@ -107,23 +112,23 @@ mod tests {
             },
             Test {
                 name: "2π radiants must not equals zero",
-                input: Radiant::TWO_PI.as_f64(),
-                output: Radiant::TWO_PI.as_f64(),
+                input: Radian::TWO_PI.as_f64(),
+                output: Radian::TWO_PI.as_f64(),
             },
             Test {
                 name: "negative radiant must change",
                 input: -FRAC_PI_2,
-                output: Radiant::TWO_PI.as_f64() - FRAC_PI_2,
+                output: Radian::TWO_PI.as_f64() - FRAC_PI_2,
             },
             Test {
                 name: "overflowing radiant must change",
-                input: Radiant::TWO_PI.as_f64() + FRAC_PI_2,
+                input: Radian::TWO_PI.as_f64() + FRAC_PI_2,
                 output: FRAC_PI_2,
             },
         ]
         .into_iter()
         .for_each(|test| {
-            let radiant = Radiant::from(test.input).as_f64();
+            let radiant = Radian::from(test.input).as_f64();
 
             assert_eq!(
                 radiant, test.output,

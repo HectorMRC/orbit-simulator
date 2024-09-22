@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     cartesian::{transform::Translation, Coords},
-    Distance, Frequency, Luminosity, Mass, Orbit, Radiant, Velocity, GRAVITATIONAL_CONSTANT,
+    Distance, Frequency, Luminosity, Mass, Orbit, Radian, Velocity, GRAVITATIONAL_CONSTANT,
 };
 
 /// An arbitrary spherical body.
@@ -36,6 +36,7 @@ impl Body {
 }
 
 /// Describes the habitable zone around a body.
+#[derive(Debug)]
 pub struct HabitableZone {
     pub inner_edge: Distance,
     pub outer_edge: Distance,
@@ -120,6 +121,8 @@ pub struct SystemStats {
     pub min_velocity: Velocity,
     /// The maximum velocity at which the system orbits.
     pub max_velocity: Velocity,
+    /// The habitable zone of the system, if any.
+    pub habitable_zone: Option<HabitableZone>,
     /// The descriptor of the systems orbiting in this one.
     pub secondary: Vec<SystemStats>,
 }
@@ -151,6 +154,10 @@ impl SystemStats {
                 .zip(system.orbit)
                 .map(|(orbitee, orbit)| orbit.max_velocity(&orbitee.primary))
                 .unwrap_or_default(),
+            habitable_zone: system
+                .primary
+                .is_luminous()
+                .then_some(HabitableZone::from(&system.primary)),
             secondary: system
                 .secondary
                 .iter()
@@ -182,11 +189,11 @@ struct BodyPosition<'a> {
 #[derive(Debug, Default, Clone)]
 pub struct SystemState {
     /// How much rotated is the primary body.
-    pub rotation: Radiant,
+    pub rotation: Radian,
     /// Where is located the center of the primary body.
     pub position: Coords,
     /// At which radiant of its orbit is localed the system.
-    pub theta: Radiant,
+    pub theta: Radian,
     /// At which velocity is the system moving.
     pub velocity: Velocity,
     /// The state of the secondary bodies.
@@ -194,10 +201,10 @@ pub struct SystemState {
 }
 
 impl SystemState {
-    fn spin_at(mut time: Duration, body: &Body) -> Radiant {
+    fn spin_at(mut time: Duration, body: &Body) -> Radian {
         time = Duration::from_secs_f64(time.as_secs_f64() % (1. / body.rotation).as_secs_f64());
 
-        (Radiant::from(body.rotation).as_f64() * time.as_secs() as f64).into()
+        (Radian::from(body.rotation).as_f64() * time.as_secs() as f64).into()
     }
 
     fn position_at<O: Orbit>(
@@ -219,7 +226,7 @@ impl SystemState {
         time: Duration,
         system: &System<O>,
         parent: Option<BodyPosition>,
-    ) -> Radiant {
+    ) -> Radian {
         let (Some(parent), Some(orbit)) = (parent, system.orbit) else {
             return Default::default();
         };

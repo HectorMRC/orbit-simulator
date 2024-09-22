@@ -2,7 +2,7 @@ use std::ops::Neg;
 
 use nalgebra::Matrix3;
 
-use crate::Radiant;
+use crate::Radian;
 
 use super::{Coords, Transform};
 
@@ -49,7 +49,7 @@ pub struct Rotation {
     /// The axis of rotation about which perform the transformation.
     pub axis: Coords,
     /// The angle of rotation.
-    pub theta: Radiant,
+    pub theta: Radian,
 }
 
 impl Transform for Rotation {
@@ -83,7 +83,7 @@ impl Neg for Rotation {
 
     fn neg(self) -> Self::Output {
         Self {
-            theta: Radiant::from(-self.theta.as_f64()),
+            theta: Radian::from(-self.theta.as_f64()),
             axis: self.axis,
         }
     }
@@ -95,7 +95,7 @@ impl Rotation {
         self
     }
 
-    pub fn with_theta(mut self, theta: Radiant) -> Self {
+    pub fn with_theta(mut self, theta: Radian) -> Self {
         self.theta = theta;
         self
     }
@@ -111,7 +111,7 @@ mod tests {
             Coords,
         },
         tests::approx_eq,
-        Radiant,
+        Radian,
     };
 
     #[test]
@@ -120,7 +120,7 @@ mod tests {
 
         struct Test {
             name: &'static str,
-            theta: Radiant,
+            theta: Radian,
             axis: Coords,
             input: Coords,
             output: Coords,
@@ -129,49 +129,49 @@ mod tests {
         vec![
             Test {
                 name: "full rotation on the x axis must not change the y point",
-                theta: Radiant::from(2. * PI),
+                theta: Radian::from(2. * PI),
                 axis: Coords::from([1., 0., 0.]),
                 input: Coords::from([0., 1., 0.]),
                 output: Coords::from([0., 1., 0.]),
             },
             Test {
                 name: "half of a whole rotation on the x axis must change the y point",
-                theta: Radiant::from(PI),
+                theta: Radian::from(PI),
                 axis: Coords::from([1., 0., 0.]),
                 input: Coords::from([0., 1., 0.]),
                 output: Coords::from([0., -1., 0.]),
             },
             Test {
                 name: "a quarter of a whole rotation on the x axis must change the y point",
-                theta: Radiant::from(FRAC_PI_2),
+                theta: Radian::from(FRAC_PI_2),
                 axis: Coords::from([1., 0., 0.]),
                 input: Coords::from([0., 1., 0.]),
                 output: Coords::from([0., 0., 1.]),
             },
             Test {
                 name: "full rotation on the z axis must not change the y point",
-                theta: Radiant::from(2. * PI),
+                theta: Radian::from(2. * PI),
                 axis: Coords::from([0., 0., 1.]),
                 input: Coords::from([0., 1., 0.]),
                 output: Coords::from([0., 1., 0.]),
             },
             Test {
                 name: "half of a whole rotation on the z axis must change the y point",
-                theta: Radiant::from(PI),
+                theta: Radian::from(PI),
                 axis: Coords::from([0., 0., 1.]),
                 input: Coords::from([0., 1., 0.]),
                 output: Coords::from([0., -1., 0.]),
             },
             Test {
                 name: "a quarter of a whole rotation on the z axis must change the y point",
-                theta: Radiant::from(FRAC_PI_2),
+                theta: Radian::from(FRAC_PI_2),
                 axis: Coords::from([0., 0., 1.]),
                 input: Coords::from([0., 1., 0.]),
                 output: Coords::from([-1., 0., 0.]),
             },
             Test {
                 name: "rotate over itself must not change the point",
-                theta: Radiant::from(FRAC_PI_2),
+                theta: Radian::from(FRAC_PI_2),
                 axis: Coords::from([0., 1., 0.]),
                 input: Coords::from([0., 1., 0.]),
                 output: Coords::from([0., 1., 0.]),

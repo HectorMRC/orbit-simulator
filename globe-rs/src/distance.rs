@@ -1,4 +1,4 @@
-use std::ops::{Add, Div, Mul};
+use std::{fmt::Debug, ops::{Add, Div, Mul}};
 
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +7,7 @@ use crate::PositiveFloat;
 const METERS_PER_KM: f64 = 1000.;
 
 /// The distance between two points in space, which is always a positive number.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Distance(PositiveFloat);
 
 impl Add for Distance {
@@ -31,6 +31,12 @@ impl Div<f64> for Distance {
 
     fn div(self, rhs: f64) -> Self::Output {
         Self((self.0 .0 / rhs).into())
+    }
+}
+
+impl Debug for Distance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Distance").field(&format!("{} km", self.0)).finish()
     }
 }
 

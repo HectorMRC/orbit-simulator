@@ -6,7 +6,7 @@ use crate::{
     cartesian::{transform::Rotation, Coords},
     orbit::{Orbit, GRAVITATIONAL_CONSTANT},
     system::Body,
-    Distance, Radiant, Velocity,
+    Distance, Radian, Velocity,
 };
 
 use super::{Sample, Shape};
@@ -17,11 +17,11 @@ pub struct Circle {
     /// The radius of the circle.
     pub radius: Distance,
     /// The initial radiant of the circle.
-    pub initial_theta: Radiant,
+    pub initial_theta: Radian,
     /// The direction of the circle.
     pub clockwise: bool,
     /// The total radiants of the circle to sample.
-    pub theta: Radiant,
+    pub theta: Radian,
 }
 
 impl Default for Circle {
@@ -30,13 +30,13 @@ impl Default for Circle {
             radius: Default::default(),
             initial_theta: Default::default(),
             clockwise: Default::default(),
-            theta: Radiant::TWO_PI,
+            theta: Radian::TWO_PI,
         }
     }
 }
 
 impl Sample for Circle {
-    fn with_initial_theta(mut self, theta: Radiant) -> Self {
+    fn with_initial_theta(mut self, theta: Radian) -> Self {
         self.initial_theta = theta;
         self
     }
@@ -94,22 +94,22 @@ impl Orbit for Circle {
             .transform(rotation)
     }
 
-    fn theta_at(&self, mut time: Duration, orbitee: &Body) -> Radiant {
+    fn theta_at(&self, mut time: Duration, orbitee: &Body) -> Radian {
         let period = self.period(orbitee);
         time = Duration::from_secs_f64(time.as_secs_f64() % period.as_secs_f64());
 
-        Radiant::TWO_PI / period.as_secs_f64() * time.as_secs_f64()
+        Radian::TWO_PI / period.as_secs_f64() * time.as_secs_f64()
     }
 
     fn period(&self, orbitee: &Body) -> Duration {
         Duration::from_secs_f64(
-            Radiant::TWO_PI.as_f64()
+            Radian::TWO_PI.as_f64()
                 * (self.radius.as_meters().powi(3) / orbitee.gravitational_parameter()).sqrt(),
         )
     }
 
     fn perimeter(&self) -> Distance {
-        self.radius * Radiant::TWO_PI.as_f64()
+        self.radius * Radian::TWO_PI.as_f64()
     }
 
     fn focus(&self) -> Coords {
@@ -129,6 +129,6 @@ impl Circle {
 
     /// Returns the length of the arc.
     pub fn length(&self) -> Distance {
-        self.radius * Radiant::TWO_PI.as_f64()
+        self.radius * Radian::TWO_PI.as_f64()
     }
 }

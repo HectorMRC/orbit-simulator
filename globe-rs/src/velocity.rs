@@ -1,9 +1,17 @@
+use std::fmt::Debug;
+
 use crate::PositiveFloat;
 
 /// The velocity at which an aritrary object moves throught space, which is always a positive
 /// number.
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Velocity(PositiveFloat);
+
+impl Debug for Velocity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Velocity").field(&format!("{} m/s", self.0)).finish()
+    }
+}
 
 impl Velocity {
     /// Returns a new velocity of v meters per second.

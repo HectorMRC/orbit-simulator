@@ -26,7 +26,7 @@ fn main() {
                 },
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT * 0.38700,
-                    eccentricity: Ratio::from(0.68),
+                    eccentricity: Ratio::from(0.206),
                     ..Default::default()
                 }),
                 secondary: vec![],

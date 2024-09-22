@@ -1,9 +1,11 @@
+use std::fmt::Debug;
+
 use serde::{Deserialize, Serialize};
 
 use crate::PositiveFloat;
 
 /// A value that must be in the range of [[0, 1]].
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Ratio(PositiveFloat);
 
 impl From<f64> for Ratio {
@@ -15,6 +17,12 @@ impl From<f64> for Ratio {
         } else {
             Self(value.into())
         }
+    }
+}
+
+impl Debug for Ratio {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Ratio").field(&format!("{}%", self.0.0 * 100.)).finish()
     }
 }
 

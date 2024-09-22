@@ -1,4 +1,4 @@
-use crate::Radiant;
+use crate::Radian;
 
 use super::Coords;
 
@@ -17,7 +17,7 @@ pub struct Shape {
 /// A continious shape that can be sampled into a discrete [Shape].
 pub trait Sample {
     /// Determines the radiant at which the sample begins.
-    fn with_initial_theta(self, theta: Radiant) -> Self;
+    fn with_initial_theta(self, theta: Radian) -> Self;
 
     /// Samples the continuous shape as a discrete set of [Cartesian]s by dividing it into
     /// segments.

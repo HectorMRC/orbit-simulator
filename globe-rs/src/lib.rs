@@ -3,6 +3,8 @@ pub mod cartesian;
 pub mod geographic;
 
 mod orbit;
+use std::fmt::Display;
+
 pub use orbit::*;
 
 mod system;
@@ -20,8 +22,8 @@ pub use luminosity::*;
 mod mass;
 pub use mass::*;
 
-mod radiant;
-pub use radiant::*;
+mod radian;
+pub use radian::*;
 
 mod ratio;
 pub use ratio::*;
@@ -52,6 +54,12 @@ impl Ord for PositiveFloat {
 impl PartialOrd for PositiveFloat {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl Display for PositiveFloat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
