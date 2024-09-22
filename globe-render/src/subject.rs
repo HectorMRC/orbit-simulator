@@ -22,12 +22,13 @@ pub fn select_on_click(
         if let Some(body) = bodies
             .iter()
             .filter(|(body, transform)| {
-                transform.translation.distance(cursor.position) <= body.radius.as_meters() as f32
+                transform.translation.distance(cursor.position)
+                    <= body.spec.radius.as_meters() as f32
             })
             .map(|(body, _)| body)
             .next()
         {
-            subject.name = Some(body.name.clone());
+            subject.name = Some(body.spec.name.clone());
         };
     }
 }

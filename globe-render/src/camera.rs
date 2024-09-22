@@ -15,7 +15,7 @@ where
 {
     let window = window.single();
 
-    let system_radius = system.radius().as_meters() as f32;
+    let system_radius = system.spec.radius().as_meters() as f32;
     let initial_scale =
         (2. * system_radius) / window.resolution.width().min(window.resolution.height());
 

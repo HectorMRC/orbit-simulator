@@ -1,5 +1,6 @@
-use std::{f64::consts::FRAC_PI_2, ops::Deref};
+use std::f64::consts::FRAC_PI_2;
 
+use alvidir::name::Name;
 use bevy::{
     prelude::*,
     render::{
@@ -11,13 +12,14 @@ use bevy::{
     sprite::{AlphaMode2d, MaterialMesh2dBundle, Mesh2dHandle},
 };
 use globe_rs::{
-    cartesian::{shape::WithSector, transform::Translation, Coords}, Luminosity      , SystemState, Velocity
+    cartesian::{transform::Translation, Coords},
+    Luminosity, Radiant, SystemState, Velocity,
 };
 
 use crate::{
     camera::MainCamera,
     color,
-    material::{RadialGradientMaterial, RadialGradientMaterialBuilder},
+    material::{OrbitTrailMaterial, RadialGradientMaterial, RadialGradientMaterialBuilder},
     time::WorldTime,
 };
 
@@ -31,16 +33,20 @@ pub struct System<O: globe_rs::Orbit> {
     pub spec: globe_rs::System<O>,
 }
 
-impl<O: globe_rs::Orbit> Deref for System<O> {
-    type Target = globe_rs::System<O>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.spec
+impl<O: globe_rs::Orbit> From<globe_rs::System<O>> for System<O> {
+    fn from(value: globe_rs::System<O>) -> Self {
+        Self { spec: value }
     }
 }
 
-impl<O: globe_rs::Orbit> From<globe_rs::System<O>> for System<O> {
-    fn from(value: globe_rs::System<O>) -> Self {
+/// A description of the orbital system.
+#[derive(Resource)]
+pub struct SystemStats {
+    pub spec: globe_rs::SystemStats,
+}
+
+impl From<globe_rs::SystemStats> for SystemStats {
+    fn from(value: globe_rs::SystemStats) -> Self {
         Self { spec: value }
     }
 }
@@ -49,18 +55,9 @@ impl<O: globe_rs::Orbit> From<globe_rs::System<O>> for System<O> {
 #[derive(Component)]
 pub struct Body {
     pub spec: globe_rs::Body,
-    pub position: Coords,
     pub velocity: Velocity,
-    pub min_velocity: Velocity,
-    pub max_velocity: Velocity,
-}
-
-impl Deref for Body {
-    type Target = globe_rs::Body;
-
-    fn deref(&self) -> &Self::Target {
-        &self.spec
-    }
+    pub position: Coords,
+    pub theta: Radiant,
 }
 
 /// The habitable zone around a body.
@@ -68,10 +65,18 @@ impl Deref for Body {
 pub struct HabitableZone;
 
 /// An orbit in the system.
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Component, Clone)]
 pub struct Orbit<O: globe_rs::Orbit> {
+    pub system: Name<globe_rs::Body>,
     pub focus: Coords,
     pub spec: O,
+}
+
+pub fn describe<O>(mut commands: Commands, system: Res<System<O>>)
+where
+    O: 'static + globe_rs::Orbit + Sync + Send,
+{
+    commands.insert_resource(SystemStats::from(globe_rs::SystemStats::from(&system.spec)));
 }
 
 pub fn clear_all<O>(
@@ -98,7 +103,6 @@ pub fn clear_all<O>(
 pub fn spawn_bodies<O>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     system: Res<System<O>>,
     time: Res<WorldTime>,
@@ -108,11 +112,10 @@ pub fn spawn_bodies<O>(
     fn spawn_bodies_immersion<O>(
         commands: &mut Commands,
         meshes: &mut Assets<Mesh>,
-        buffers: &mut ResMut<Assets<ShaderStorageBuffer>>,
         materials: &mut Assets<ColorMaterial>,
         system: &globe_rs::System<O>,
         state: SystemState,
-        parent: Option<(&globe_rs::Body, Coords)>,
+        parent: Option<(Name<globe_rs::Body>, Coords)>,
     ) where
         O: 'static + globe_rs::Orbit + Sync + Send,
     {
@@ -143,18 +146,21 @@ pub fn spawn_bodies<O>(
 
         let body = Body {
             spec: system.primary.clone(),
-            position: state.position,
             velocity: state.velocity,
-            min_velocity: Default::default(),
-            max_velocity: Default::default(),
+            position: state.position,
+            theta: state.theta,
         };
 
-        if let (Some((orbitee, focus)), Some(orbit)) = (parent, system.orbit) {
-            commands.spawn((material, Body {
-                min_velocity: orbit.min_velocity(orbitee),
-                max_velocity: orbit.max_velocity(orbitee),
-                ..body
-            }, Orbit { focus, spec: orbit }));
+        if let (Some((system, focus)), Some(spec)) = (parent, system.orbit) {
+            commands.spawn((
+                material,
+                body,
+                Orbit {
+                    system,
+                    focus,
+                    spec,
+                },
+            ));
         } else {
             commands.spawn((material, body));
         }
@@ -167,11 +173,10 @@ pub fn spawn_bodies<O>(
                 spawn_bodies_immersion::<O>(
                     commands,
                     meshes,
-                    buffers,
                     materials,
                     subsystem,
                     substate,
-                    Some((&system.primary, state.position)),
+                    Some((system.primary.name.clone(), state.position)),
                 )
             });
     }
@@ -179,10 +184,9 @@ pub fn spawn_bodies<O>(
     spawn_bodies_immersion::<O>(
         &mut commands,
         &mut meshes,
-        &mut buffers,
         &mut materials,
-        &system,
-        system.state_at(time.elapsed_time),
+        &system.spec,
+        system.spec.state_at(time.elapsed_time),
         None,
     );
 }
@@ -190,19 +194,23 @@ pub fn spawn_bodies<O>(
 pub fn spawn_orbits<O>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<OrbitTrailMaterial>>,
     orbits: Query<(&Body, &Orbit<O>), With<Orbit<O>>>,
+    system: Res<SystemStats>,
 ) where
-    O: 'static + globe_rs::Orbit + WithSector + Sync + Send,
+    O: 'static + globe_rs::Orbit + Sync + Send,
 {
-    orbits.into_iter().for_each(|(body, &orbit)| {
-        let current_radiant = body.position.y().atan2(body.position.x());
-        let trail_radiants = FRAC_PI_2 * body.velocity.as_meters_sec() / body.max_velocity.as_meters_sec();
+    orbits.into_iter().for_each(|(body, orbit)| {
+        let Some(stats) = system.spec.stats(&orbit.system) else {
+            panic!(
+                "stats for system with primary body {} does not exist",
+                orbit.system
+            );
+        };
 
-        let orbit_points: Vec<[f32; 3]> = orbit
+        let mut orbit_points: Vec<[f32; 3]> = orbit
             .spec
-            .with_initial_theta((current_radiant-trail_radiants).into())   
-            .with_theta(trail_radiants.into())     
+            .with_initial_theta(body.theta)
             .sample(1024)
             .points
             .into_iter()
@@ -214,8 +222,8 @@ pub fn spawn_orbits<O>(
             .map(|point| [point.x() as f32, point.y() as f32, point.z() as f32])
             .collect();
 
-        // ensure the mesh is closed.
-        // orbit_points.push(orbit_points[0]);
+        //ensure the mesh is closed.
+        orbit_points.push(orbit_points[0]);
 
         let orbit_mesh = Mesh::new(
             PrimitiveTopology::LineStrip,
@@ -223,18 +231,49 @@ pub fn spawn_orbits<O>(
         )
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, orbit_points);
 
+        let trail_ratio = stats
+            .secondary
+            .iter()
+            .fold(None, |fastest, stats| {
+                let Some(fast) = fastest else {
+                    return Some(stats);
+                };
+
+                if fast.max_velocity < stats.max_velocity {
+                    return Some(stats);
+                }
+
+                fastest
+            })
+            .map(|fastest| {
+                let radius_inv = 1. / fastest.radius.as_meters();
+                FRAC_PI_2 / fastest.max_velocity.as_meters_sec() / radius_inv
+            })
+            .unwrap_or_default();
+
         commands.spawn((
             MaterialMesh2dBundle {
                 mesh: Mesh2dHandle(meshes.add(orbit_mesh)),
                 transform: Transform::from_xyz(0., 0., ORBIT_Z_PLANE),
-                material: materials.add(ColorMaterial {
-                    color: color::DAVYS_GRAY,
-                    alpha_mode: AlphaMode2d::Blend,
-                    ..default()
+                material: materials.add(OrbitTrailMaterial {
+                    center: Vec3 {
+                        x: (orbit.focus + orbit.spec.focus()).x() as f32,
+                        y: (orbit.focus + orbit.spec.focus()).y() as f32,
+                        z: (orbit.focus + orbit.spec.focus()).z() as f32,
+                    },
+                    origin: Vec3 {
+                        x: body.position.x() as f32,
+                        y: body.position.y() as f32,
+                        z: body.position.z() as f32,
+                    },
+                    background_color: color::JET.to_linear().to_vec4(),
+                    trail_color: color::KHAKI.to_linear().to_vec4(),
+                    trail_theta: (body.velocity.as_meters_sec() / orbit.spec.radius().as_meters()
+                        * trail_ratio) as f32,
                 }),
                 ..default()
             },
-            orbit,
+            orbit.clone(),
         ));
     });
 }
@@ -312,7 +351,7 @@ pub fn spawn_heliosphere<O>(
 ) where
     O: 'static + globe_rs::Orbit + Sync + Send,
 {
-    let system_radius = 1.1 * system.radius().as_meters() as f32;
+    let system_radius = 1.1 * system.spec.radius().as_meters() as f32;
     let shadow_radius = 1.05 * system_radius;
 
     commands.spawn(MaterialMesh2dBundle {

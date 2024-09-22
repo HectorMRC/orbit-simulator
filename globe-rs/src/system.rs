@@ -4,7 +4,8 @@ use alvidir::name::Name;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    cartesian::{transform::Translation, Coords}, Distance, Frequency, Luminosity, Mass, Orbit, Radiant, Velocity, GRAVITATIONAL_CONSTANT
+    cartesian::{transform::Translation, Coords},
+    Distance, Frequency, Luminosity, Mass, Orbit, Radiant, Velocity, GRAVITATIONAL_CONSTANT,
 };
 
 /// An arbitrary spherical body.
@@ -53,7 +54,7 @@ impl From<&Body> for HabitableZone {
 
 /// An orbital system.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct System<O: Orbit> {
+pub struct System<O> {
     /// The central body of the system.
     pub primary: Body,
     /// The orbit the system.
@@ -80,9 +81,19 @@ impl<O: Orbit> System<O> {
             .unwrap_or(radius)
     }
 
-    /// Returns the orbital frequency of the system, which corresponds to the time it takes to the system to recover the same
-    /// orbital state.
-    pub fn state_frequency(&self) -> Frequency {
+    /// Returns the system in the system which primary body has the given name.
+    pub fn system<'a>(&'a self, name: &Name<Body>) -> Option<&'a System<O>> {
+        if &self.primary.name == name {
+            return Some(self);
+        }
+
+        self.secondary.iter().find_map(|system| system.system(name))
+    }
+}
+
+impl<O> System<O> {
+    /// Returns the time it takes to the system to get into the same state.
+    pub fn state_period(&self) -> Frequency {
         // fn orbit_frequency(system: &System, central_body: &Body) -> Frequency {
         //     let radius = system.distance + system.primary.radius + central_body.radius;
         //     let start = Coords::default().with_y(radius.as_km());
@@ -94,42 +105,69 @@ impl<O: Orbit> System<O> {
     }
 }
 
-/// A description of an orbital system.
+/// Constant stats of an orbital system.
 #[derive(Debug)]
-pub struct SystemDescriptor {
-    /// The time it takes for the system to orbit its parent.
+pub struct SystemStats {
+    /// The name of the ruling body.
+    pub body: Name<Body>,
+    /// The distance from the center of the orbit to its outer most boundary.
+    pub radius: Distance,
+    /// The perimeter of the orbit.
+    pub perimeter: Distance,
+    /// The time it takes for the system to complete its orbit.
     pub period: Duration,
+    /// The minimum velocity at which the system orbits.    
+    pub min_velocity: Velocity,
+    /// The maximum velocity at which the system orbits.
+    pub max_velocity: Velocity,
     /// The descriptor of the systems orbiting in this one.
-    pub secondary: Vec<SystemDescriptor>,
+    pub secondary: Vec<SystemStats>,
 }
 
-// impl From<&System> for SystemDescriptor {
-//     fn from(system: &System) -> Self {
-//         SystemDescriptor::new(system, None)
-//     }
-// }
+impl<O: Orbit> From<&System<O>> for SystemStats {
+    fn from(system: &System<O>) -> Self {
+        SystemStats::new(system, None)
+    }
+}
 
-// impl SystemDescriptor {
-//     fn new(system: &System, parent: Option<&System>) -> Self {
-//         Self {
-//             period: parent
-//                 .map(|parent| {
-//                     let radius = system.distance + system.primary.radius + parent.primary.radius;
-//                     let start = Coords::default().with_y(radius.as_km());
+impl SystemStats {
+    fn new<O: Orbit>(system: &System<O>, orbitee: Option<&System<O>>) -> Self {
+        Self {
+            body: system.primary.name.clone(),
+            radius: system.orbit.map(|orbit| orbit.radius()).unwrap_or_default(),
+            perimeter: system
+                .orbit
+                .map(|orbit| orbit.perimeter())
+                .unwrap_or_default(),
+            period: orbitee
+                .zip(system.orbit)
+                .map(|(orbitee, orbit)| orbit.period(&orbitee.primary))
+                .unwrap_or_default(),
+            min_velocity: orbitee
+                .zip(system.orbit)
+                .map(|(orbitee, orbit)| orbit.min_velocity(&orbitee.primary))
+                .unwrap_or_default(),
+            max_velocity: orbitee
+                .zip(system.orbit)
+                .map(|(orbitee, orbit)| orbit.max_velocity(&orbitee.primary))
+                .unwrap_or_default(),
+            secondary: system
+                .secondary
+                .iter()
+                .map(|subsystem| SystemStats::new(subsystem, Some(system)))
+                .collect(),
+        }
+    }
 
-//                     let orbit = Arc::default().with_start(start);
+    /// Returns the stats in the system stats corresponding to the body with the given name.
+    pub fn stats<'a>(&'a self, name: &Name<Body>) -> Option<&'a SystemStats> {
+        if &self.body == name {
+            return Some(self);
+        }
 
-//                     1. / orbit.frequency(&parent.primary)
-//                 })
-//                 .unwrap_or_default(),
-//             secondary: system
-//                 .secondary
-//                 .iter()
-//                 .map(|subsystem| SystemDescriptor::new(subsystem, Some(system)))
-//                 .collect(),
-//         }
-//     }
-// }
+        self.secondary.iter().find_map(|system| system.stats(name))
+    }
+}
 
 /// An union of the [Body] type and its [Cartesian] position.
 #[derive(Debug, Clone, Copy)]
@@ -147,6 +185,8 @@ pub struct SystemState {
     pub rotation: Radiant,
     /// Where is located the center of the primary body.
     pub position: Coords,
+    /// At which radiant of its orbit is localed the system.
+    pub theta: Radiant,
     /// At which velocity is the system moving.
     pub velocity: Velocity,
     /// The state of the secondary bodies.
@@ -175,6 +215,18 @@ impl SystemState {
             .transform(Translation::default().with_vector(orbit.focus()))
     }
 
+    fn theta_at<O: Orbit>(
+        time: Duration,
+        system: &System<O>,
+        parent: Option<BodyPosition>,
+    ) -> Radiant {
+        let (Some(parent), Some(orbit)) = (parent, system.orbit) else {
+            return Default::default();
+        };
+
+        orbit.theta_at(time, parent.body)
+    }
+
     fn velocity_at<O: Orbit>(
         time: Duration,
         system: &System<O>,
@@ -191,6 +243,7 @@ impl SystemState {
         let mut state = SystemState {
             rotation: Self::spin_at(time, &system.primary),
             position: Self::position_at::<O>(time, system, parent),
+            theta: Self::theta_at::<O>(time, system, parent),
             velocity: Self::velocity_at::<O>(time, system, parent),
             ..Default::default()
         };

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{cartesian::Coords, Body, Distance, Orbit, Radiant, Ratio, Velocity};
 
-use super::{Sample, Shape, WithSector};
+use super::{Sample, Shape};
 
 /// An ellipse.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -15,6 +15,8 @@ pub struct Ellipse {
     pub eccentricity: Ratio,
     /// The initial radiant of the ellipse.
     pub initial_theta: Radiant,
+    /// The direction of the ellipse.
+    pub clockwise: bool,
     /// The total radiants of the ellipse to sample.
     pub theta: Radiant,
 }
@@ -25,17 +27,29 @@ impl Default for Ellipse {
             semi_major_axis: Default::default(),
             eccentricity: Default::default(),
             initial_theta: Default::default(),
+            clockwise: Default::default(),
             theta: Radiant::TWO_PI,
         }
     }
 }
 
 impl Sample for Ellipse {
+    fn with_initial_theta(mut self, theta: Radiant) -> Self {
+        self.initial_theta = theta;
+        self
+    }
+
     fn sample(&self, segments: usize) -> super::Shape {
         Shape {
             points: (0..segments)
                 .map(|vertex_index| self.theta / segments as f64 * vertex_index as f64)
-                .map(|theta| theta + self.initial_theta)
+                .map(|theta| {
+                    if self.clockwise {
+                        self.initial_theta - theta
+                    } else {
+                        self.initial_theta + theta
+                    }
+                })
                 .map(|theta| self.position(theta))
                 .collect(),
         }
@@ -44,16 +58,13 @@ impl Sample for Ellipse {
 
 impl Orbit for Ellipse {
     fn min_velocity(&self, orbitee: &Body) -> Velocity {
-        self.velocity(
-            self.linear_eccentricity() + self.semi_major_axis,
-            orbitee
-        )
+        self.velocity(self.linear_eccentricity() + self.semi_major_axis, orbitee)
     }
 
-    fn max_velocity(&self, orbitee: &Body) -> Velocity {        
+    fn max_velocity(&self, orbitee: &Body) -> Velocity {
         self.velocity(
             self.linear_eccentricity().abs_diff(self.semi_major_axis),
-            orbitee
+            orbitee,
         )
     }
 
@@ -68,7 +79,11 @@ impl Orbit for Ellipse {
         self.velocity(Distance::meters(radius), orbitee)
     }
 
-    fn position_at(&self, mut time: Duration, orbitee: &Body) -> Coords {
+    fn position_at(&self, time: Duration, orbitee: &Body) -> Coords {
+        self.position(self.theta_at(time, orbitee))
+    }
+
+    fn theta_at(&self, mut time: Duration, orbitee: &Body) -> Radiant {
         time = Duration::from_secs_f64(time.as_secs_f64() % self.period(orbitee).as_secs_f64());
 
         let mean_anomaly =
@@ -90,11 +105,9 @@ impl Orbit for Ellipse {
             eccentric_anomaly -= f / f_prime;
         }
 
-        let true_anomaly = 2.0
-            * ((1.0 + self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).sin())
-                .atan2((1.0 - self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).cos());
-
-        self.position(true_anomaly.into())
+        (2.0 * ((1.0 + self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).sin())
+            .atan2((1.0 - self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).cos()))
+        .into()
     }
 
     fn period(&self, orbitee: &Body) -> Duration {
@@ -124,18 +137,6 @@ impl Orbit for Ellipse {
 
     fn radius(&self) -> Distance {
         self.semi_major_axis + self.linear_eccentricity()
-    }
-}
-
-impl WithSector for Ellipse {
-    fn with_initial_theta(mut self, theta: Radiant) -> Self {
-        self.initial_theta = theta;
-        self
-    }
-
-    fn with_theta(mut self, theta: Radiant) -> Self {
-        self.theta = theta;
-        self
     }
 }
 

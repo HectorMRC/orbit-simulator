@@ -3,7 +3,7 @@ use std::time::Duration;
 use crate::{
     cartesian::{shape::Sample, Coords},
     system::Body,
-    Distance, Frequency, Velocity,
+    Distance, Frequency, Radiant, Velocity,
 };
 
 /// The gravitational constant as N⋅m^2⋅kg^−2.
@@ -23,6 +23,9 @@ pub trait Orbit: Copy + Sample {
     /// Returns the position of the object at the given theta of the orbit after
     /// a given duration.
     fn position_at(&self, time: Duration, orbitee: &Body) -> Coords;
+
+    /// Returns the radiant of the orbit at which is located the object.
+    fn theta_at(&self, time: Duration, orbitee: &Body) -> Radiant;
 
     /// The orbit's period.
     fn period(&self, orbitee: &Body) -> Duration;

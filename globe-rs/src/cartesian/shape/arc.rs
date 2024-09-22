@@ -9,7 +9,7 @@ use crate::{
     Distance, Radiant, Velocity,
 };
 
-use super::{Sample, Shape, WithSector};
+use super::{Sample, Shape};
 
 /// A circumference.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -18,6 +18,8 @@ pub struct Circle {
     pub radius: Distance,
     /// The initial radiant of the circle.
     pub initial_theta: Radiant,
+    /// The direction of the circle.
+    pub clockwise: bool,
     /// The total radiants of the circle to sample.
     pub theta: Radiant,
 }
@@ -27,20 +29,35 @@ impl Default for Circle {
         Self {
             radius: Default::default(),
             initial_theta: Default::default(),
+            clockwise: Default::default(),
             theta: Radiant::TWO_PI,
         }
     }
 }
 
 impl Sample for Circle {
+    fn with_initial_theta(mut self, theta: Radiant) -> Self {
+        self.initial_theta = theta;
+        self
+    }
+
     fn sample(&self, segments: usize) -> super::Shape {
         Shape {
             points: (0..segments)
-                .map(|vertex_index| {
-                    let theta = self.initial_theta + Radiant::TWO_PI / segments as f64 * vertex_index as f64;
-                    let rotation = Rotation::default()
+                .map(|vertex_index| self.theta / segments as f64 * vertex_index as f64)
+                .map(|theta| {
+                    if self.clockwise {
+                        self.initial_theta - theta
+                    } else {
+                        self.initial_theta + theta
+                    }
+                })
+                .map(|theta| {
+                    Rotation::default()
                         .with_axis(Coords::default().with_z(1.))
-                        .with_theta(theta);
+                        .with_theta(theta)
+                })
+                .map(|rotation| {
                     Coords::default()
                         .with_x(self.radius.as_meters())
                         .transform(rotation)
@@ -66,11 +83,8 @@ impl Orbit for Circle {
         self.min_velocity(orbitee)
     }
 
-    fn position_at(&self, mut time: Duration, orbitee: &Body) -> Coords {
-        let period = self.period(orbitee);
-        time = Duration::from_secs_f64(time.as_secs_f64() % period.as_secs_f64());
-
-        let theta = Radiant::TWO_PI / period.as_secs_f64() * time.as_secs_f64();
+    fn position_at(&self, time: Duration, orbitee: &Body) -> Coords {
+        let theta = self.theta_at(time, orbitee);
         let rotation = Rotation::default()
             .with_axis(Coords::default().with_z(1.))
             .with_theta(theta);
@@ -78,6 +92,13 @@ impl Orbit for Circle {
         Coords::default()
             .with_x(self.radius.as_meters())
             .transform(rotation)
+    }
+
+    fn theta_at(&self, mut time: Duration, orbitee: &Body) -> Radiant {
+        let period = self.period(orbitee);
+        time = Duration::from_secs_f64(time.as_secs_f64() % period.as_secs_f64());
+
+        Radiant::TWO_PI / period.as_secs_f64() * time.as_secs_f64()
     }
 
     fn period(&self, orbitee: &Body) -> Duration {
@@ -97,18 +118,6 @@ impl Orbit for Circle {
 
     fn radius(&self) -> Distance {
         self.radius
-    }
-}
-
-impl WithSector for Circle {
-    fn with_initial_theta(mut self, theta: Radiant) -> Self {
-        self.initial_theta = theta;
-        self
-    }
-
-    fn with_theta(mut self, theta: Radiant) -> Self {
-        self.theta = theta;
-        self
     }
 }
 
