@@ -10,6 +10,7 @@ mod scroll;
 mod subject;
 pub mod system;
 mod time;
+mod ui;
 mod zoom;
 
 #[derive(Component)]
@@ -24,7 +25,9 @@ impl Plugin for Globe2DPlugin {
             .init_resource::<cursor::Cursor>()
             .init_resource::<subject::Subject>()
             .init_resource::<time::WorldTime>()
+            .add_systems(Startup, ui::spawn)
             .add_systems(PreUpdate, time::update_time)
+            .add_systems(Update, ui::update)
             .add_systems(Update, subject::select_on_click)
             .add_systems(Update, zoom::logarithmic)
             .add_systems(Update, scroll::linear)
