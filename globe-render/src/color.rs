@@ -24,14 +24,13 @@ pub const EERIE_BLACK: Color = Color::srgb(0.109_803_92, 0.117_647_06, 0.129_411
 /// Hexa RGB: #131416
 pub const NIGHT: Color = Color::srgb(0.074_509_81, 0.078_431_375, 0.086_274_51);
 
-
 // https://coolors.co/31e981-fbff00-d91e36
 
 /// Hexa RGB: #31E981
 pub const SPRING_GREEN: Color = Color::srgb(0.192_156_87, 0.913_725_5, 0.505_882_4);
 
 /// Hexa RGB: #FBFF00
-pub const YELLOW: Color = Color::srgb(0.984313725490196, 1., 0.);
+pub const YELLOW: Color = Color::srgb(0.984_313_7, 1., 0.);
 
 /// Hexa RGB: #D91E36
-pub const CRIMSON: Color = Color::srgb(0.8509803921568627, 0.11764705882352941, 0.21176470588235294);
+pub const CRIMSON: Color = Color::srgb(0.850_980_4, 0.117_647_06, 0.211_764_71);

@@ -9,7 +9,9 @@ pub struct Velocity(PositiveFloat);
 
 impl Debug for Velocity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Velocity").field(&format!("{} m/s", self.0)).finish()
+        f.debug_tuple("Velocity")
+            .field(&format!("{} m/s", self.0))
+            .finish()
     }
 }
 

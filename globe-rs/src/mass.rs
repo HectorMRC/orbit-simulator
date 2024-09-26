@@ -10,7 +10,9 @@ pub struct Mass(PositiveFloat);
 
 impl Debug for Mass {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Mass").field(&format!("{} kg", self.0)).finish()
+        f.debug_tuple("Mass")
+            .field(&format!("{} kg", self.0))
+            .finish()
     }
 }
 

@@ -18,7 +18,9 @@ impl Div<Frequency> for f64 {
 
 impl Debug for Frequency {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Frequency").field(&format!("{} hz", self.0)).finish()
+        f.debug_tuple("Frequency")
+            .field(&format!("{} hz", self.0))
+            .finish()
     }
 }
 

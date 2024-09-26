@@ -1,4 +1,7 @@
-use std::{fmt::Debug, ops::{Add, Div, Mul}};
+use std::{
+    fmt::Debug,
+    ops::{Add, Div, Mul},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +39,9 @@ impl Div<f64> for Distance {
 
 impl Debug for Distance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Distance").field(&format!("{} km", self.0)).finish()
+        f.debug_tuple("Distance")
+            .field(&format!("{} km", self.0))
+            .finish()
     }
 }
 

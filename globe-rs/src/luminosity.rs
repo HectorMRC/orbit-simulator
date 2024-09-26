@@ -1,4 +1,7 @@
-use std::{fmt::Debug, ops::{Div, Mul}};
+use std::{
+    fmt::Debug,
+    ops::{Div, Mul},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -34,7 +37,9 @@ impl Div for Luminosity {
 
 impl Debug for Luminosity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Luminosity").field(&format!("{} watts", self.0)).finish()
+        f.debug_tuple("Luminosity")
+            .field(&format!("{} watts", self.0))
+            .finish()
     }
 }
 
@@ -43,7 +48,7 @@ impl Luminosity {
     pub const ZERO: Self = Self(PositiveFloat::ZERO);
 
     pub fn watts(watts: f64) -> Self {
-        Self(watts.into())      
+        Self(watts.into())
     }
 
     pub fn as_watts(&self) -> f64 {

@@ -1,5 +1,7 @@
 use std::{
-    f64::consts::PI, fmt::Debug, ops::{Add, Div, Mul, Sub}
+    f64::consts::PI,
+    fmt::Debug,
+    ops::{Add, Div, Mul, Sub},
 };
 
 use serde::{Deserialize, Serialize};
@@ -67,7 +69,9 @@ impl Div<f64> for Radian {
 
 impl Debug for Radian {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Radian").field(&format!("{} rad, {}º", self.0, self.0.0 / PI * 180.)).finish()
+        f.debug_tuple("Radian")
+            .field(&format!("{} rad, {}º", self.0, self.0 .0 / PI * 180.))
+            .finish()
     }
 }
 

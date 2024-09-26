@@ -22,7 +22,9 @@ impl From<f64> for Ratio {
 
 impl Debug for Ratio {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Ratio").field(&format!("{}%", self.0.0 * 100.)).finish()
+        f.debug_tuple("Ratio")
+            .field(&format!("{}%", self.0 .0 * 100.))
+            .finish()
     }
 }
 
