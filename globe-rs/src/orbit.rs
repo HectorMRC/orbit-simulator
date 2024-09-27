@@ -3,7 +3,7 @@ use std::time::Duration;
 use crate::{
     cartesian::{shape::Sample, Coords},
     system::Body,
-    Distance, Frequency, Radian, Velocity,
+    Distance, Radian, Velocity,
 };
 
 /// The gravitational constant as N⋅m^2⋅kg^−2.
@@ -29,11 +29,6 @@ pub trait Orbit: Copy + Sample {
 
     /// The orbit's period.
     fn period(&self, orbitee: &Body) -> Duration;
-
-    /// The orbit's frequency.
-    fn frequency(&self, orbitee: &Body) -> Frequency {
-        Frequency::hz(1. / self.period(orbitee).as_secs_f64())
-    }
 
     /// Returns the perimeter of the orbit.
     fn perimeter(&self) -> Distance;

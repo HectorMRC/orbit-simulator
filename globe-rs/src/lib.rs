@@ -13,9 +13,6 @@ pub use system::*;
 mod distance;
 pub use distance::*;
 
-mod frequency;
-pub use frequency::*;
-
 mod luminosity;
 pub use luminosity::*;
 

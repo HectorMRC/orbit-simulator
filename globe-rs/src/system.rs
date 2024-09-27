@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     cartesian::{transform::Translation, Coords},
-    Distance, Frequency, Luminosity, Mass, Orbit, Radian, Velocity, GRAVITATIONAL_CONSTANT,
+    Distance, Luminosity, Mass, Orbit, Radian, Velocity, GRAVITATIONAL_CONSTANT,
 };
 
 /// An arbitrary spherical body.
@@ -15,8 +15,8 @@ pub struct Body {
     pub name: Name<Self>,
     /// The radius of the body.
     pub radius: Distance,
-    /// The frequency of rotation over its own axis.
-    pub rotation: Frequency,
+    /// The rotation period over its own axis.
+    pub rotation: Duration,
     /// The mass of the body.
     pub mass: Mass,
     /// The luminosity of the body.
@@ -33,10 +33,15 @@ impl Body {
     pub fn is_luminous(&self) -> bool {
         self.luminosity != Luminosity::ZERO
     }
+
+    /// The time it takes to the body to complete a rotation.
+    pub fn sideral_period(&self) -> Duration {
+        self.rotation
+    }
 }
 
 /// Describes the habitable zone around a body.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct HabitableZone {
     pub inner_edge: Distance,
     pub outer_edge: Distance,
@@ -92,18 +97,25 @@ impl<O: Orbit> System<O> {
     }
 }
 
-impl<O> System<O> {
-    /// Returns the time it takes to the system to get into the same state.
-    pub fn state_period(&self) -> Frequency {
-        // fn orbit_frequency(system: &System, central_body: &Body) -> Frequency {
-        //     let radius = system.distance + system.primary.radius + central_body.radius;
-        //     let start = Coords::default().with_y(radius.as_km());
+// impl<O> System<O> {
+//     /// Returns the time it takes to the system to get into the same state.
+//     pub fn state_period(&self) -> Frequency {
+//         // fn orbit_frequency(system: &System, central_body: &Body) -> Frequency {
+//         //     let radius = system.distance + system.primary.radius + central_body.radius;
+//         //     let start = Coords::default().with_y(radius.as_km());
 
-        //     Arc::default().with_start(start).frequency(&central_body)
-        // }
+//         //     Arc::default().with_start(start).frequency(&central_body)
+//         // }
 
-        todo!()
-    }
+//         todo!()
+//     }
+// }
+
+/// The time it takes for a body to complete a "solar day" relative to another body.
+#[derive(Debug)]
+pub struct SynodicPeriod {
+    pub relative: Name<Body>,
+    pub period: Duration,
 }
 
 /// Constant stats of an orbital system.
@@ -116,13 +128,15 @@ pub struct SystemStats {
     /// The perimeter of the orbit.
     pub perimeter: Distance,
     /// The time it takes for the system to complete its orbit.
-    pub period: Duration,
-    /// The minimum velocity at which the system orbits.    
+    pub orbital_period: Duration,
+    /// The synodic periods of the system relative to its major systems.
+    pub synodic_periods: Vec<SynodicPeriod>,
+    /// The minimum velocity at which the system orbits.
     pub min_velocity: Velocity,
     /// The maximum velocity at which the system orbits.
     pub max_velocity: Velocity,
     /// The habitable zone of the system, if any.
-    pub habitable_zone: Option<HabitableZone>,
+    pub habitable_zone: HabitableZone,
     /// The descriptor of the systems orbiting in this one.
     pub secondary: Vec<SystemStats>,
 }
@@ -142,10 +156,11 @@ impl SystemStats {
                 .orbit
                 .map(|orbit| orbit.perimeter())
                 .unwrap_or_default(),
-            period: orbitee
+            orbital_period: orbitee
                 .zip(system.orbit)
                 .map(|(orbitee, orbit)| orbit.period(&orbitee.primary))
                 .unwrap_or_default(),
+            synodic_periods: Default::default(),
             min_velocity: orbitee
                 .zip(system.orbit)
                 .map(|(orbitee, orbit)| orbit.min_velocity(&orbitee.primary))
@@ -154,10 +169,7 @@ impl SystemStats {
                 .zip(system.orbit)
                 .map(|(orbitee, orbit)| orbit.max_velocity(&orbitee.primary))
                 .unwrap_or_default(),
-            habitable_zone: system
-                .primary
-                .is_luminous()
-                .then_some(HabitableZone::from(&system.primary)),
+            habitable_zone: HabitableZone::from(&system.primary),
             secondary: system
                 .secondary
                 .iter()
@@ -202,7 +214,7 @@ pub struct SystemState {
 
 impl SystemState {
     fn spin_at(mut time: Duration, body: &Body) -> Radian {
-        time = Duration::from_secs_f64(time.as_secs_f64() % (1. / body.rotation).as_secs_f64());
+        time = Duration::from_secs_f64(time.as_secs_f64() % body.rotation.as_secs_f64());
 
         (Radian::from(body.rotation).as_f64() * time.as_secs() as f64).into()
     }

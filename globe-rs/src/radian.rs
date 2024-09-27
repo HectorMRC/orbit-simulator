@@ -1,12 +1,12 @@
 use std::{
     f64::consts::PI,
     fmt::Debug,
-    ops::{Add, Div, Mul, Sub},
+    ops::{Add, Div, Mul, Sub}, time::Duration,
 };
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Frequency, PositiveFloat};
+use crate::PositiveFloat;
 
 /// The [radian](https://en.wikipedia.org/wiki/Radian) unit, which is always a positive number
 /// within the range of [0, 2π].
@@ -28,10 +28,11 @@ impl From<f64> for Radian {
     }
 }
 
-impl From<Frequency> for Radian {
-    /// The radiants per seconds the frequency represents.
-    fn from(value: Frequency) -> Self {
-        (value.as_hz() * Self::TWO_PI.as_f64()).into()
+impl From<Duration> for Radian {
+    /// The radiants per seconds the period represents.
+    fn from(period: Duration) -> Self {
+        let hz = 1. / period.as_secs_f64();
+        (hz * Self::TWO_PI.as_f64()).into()
     }
 }
 
