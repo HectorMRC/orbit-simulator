@@ -8,9 +8,9 @@ pub struct WorldClock;
 const NUMERIC_FONT: &str = "fonts/major_mono_display/MajorMonoDisplay-Regular.ttf";
 const TEXT_FONT: &str = "fonts/orbitron/static/Orbitron-Bold.ttf";
 
-const BORDER: Val = Val::Px(1.);
-const PADDING: Val = Val::Px(14.);
-const HUGE_PADDING: Val = Val::Px(36.); 
+const REGULAR_BORDER: Val = Val::Px(1.);
+const REGULAR_PADDING: Val = Val::Px(14.);
+const LARGE_PADDING: Val = Val::Px(36.);
 
 fn world_hour(time: &WorldTime) -> String {
     let hours = (time.elapsed_time.as_secs_f64() / 3600.).floor();
@@ -30,7 +30,7 @@ pub fn spawn(mut commands: Commands, time: Res<WorldTime>, asset_server: Res<Ass
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
                 justify_content: JustifyContent::SpaceBetween,
-                padding: UiRect::all(PADDING),
+                padding: UiRect::all(REGULAR_PADDING),
                 ..default()
             },
             ..default()
@@ -42,7 +42,7 @@ pub fn spawn(mut commands: Commands, time: Res<WorldTime>, asset_server: Res<Ass
                     style: Style {
                         width: Val::Percent(100.0),
                         height: Val::Percent(100.0),
-                        border: UiRect::all(BORDER),
+                        border: UiRect::all(REGULAR_BORDER),
                         ..default()
                     },
                     border_color: color::BATTLESHIP_GRAY.into(),
@@ -78,7 +78,7 @@ fn spawn_world_clock(parent: &mut ChildBuilder, time: &WorldTime, asset_server: 
                     style: Style {
                         width: Val::Auto,
                         padding: UiRect {
-                            right: HUGE_PADDING,
+                            right: LARGE_PADDING,
                             ..Default::default()
                         },
                         justify_content: JustifyContent::End,
@@ -93,22 +93,22 @@ fn spawn_world_clock(parent: &mut ChildBuilder, time: &WorldTime, asset_server: 
                         font: asset_server.load(TEXT_FONT),
                         font_size: 12.,
                         color: color::NIGHT,
-                    },  
+                    },
                 ));
 
-            // actual clock 
+            // actual clock
             parent
                 .spawn(NodeBundle {
                     style: Style {
                         border: UiRect {
                             bottom: Default::default(),
                             right: Default::default(),
-                            ..UiRect::all(BORDER)
+                            ..UiRect::all(REGULAR_BORDER)
                         },
                         padding: UiRect {
-                            left: HUGE_PADDING,
-                            right: HUGE_PADDING,
-                            ..UiRect::all(PADDING)
+                            left: LARGE_PADDING,
+                            right: LARGE_PADDING,
+                            ..UiRect::all(REGULAR_PADDING)
                         },
                         ..default()
                     },
@@ -119,7 +119,7 @@ fn spawn_world_clock(parent: &mut ChildBuilder, time: &WorldTime, asset_server: 
                 .with_child((
                     TextBundle::from_sections(vec![
                         TextSection {
-                            value: world_hour(&time),
+                            value: world_hour(time),
                             style: TextStyle {
                                 font: asset_server.load(NUMERIC_FONT),
                                 font_size: 32.0,
@@ -127,7 +127,7 @@ fn spawn_world_clock(parent: &mut ChildBuilder, time: &WorldTime, asset_server: 
                             },
                         },
                         TextSection {
-                            value: world_min_secs(&time),
+                            value: world_min_secs(time),
                             style: TextStyle {
                                 font: asset_server.load(NUMERIC_FONT),
                                 font_size: 24.0,

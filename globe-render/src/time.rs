@@ -1,4 +1,4 @@
-use std::{time::Duration, u32};
+use std::time::Duration;
 
 use bevy::prelude::*;
 
@@ -24,7 +24,7 @@ impl Default for WorldTime {
 pub fn update_time(mut world_time: ResMut<WorldTime>, time: Res<Time>) {
     if let Some(started_at) = world_time.started_at {
         let elapsed = time.elapsed();
-        let scale =  world_time.scale.saturating_mul(SECS_PER_HOUR);
+        let scale = world_time.scale.saturating_mul(SECS_PER_HOUR);
         world_time.elapsed_time += elapsed.abs_diff(started_at).saturating_mul(scale);
         world_time.started_at = Some(elapsed);
     }

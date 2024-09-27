@@ -1,7 +1,8 @@
 use std::{
     f64::consts::PI,
     fmt::Debug,
-    ops::{Add, Div, Mul, Sub}, time::Duration,
+    ops::{Add, Div, Mul, Sub},
+    time::Duration,
 };
 
 use serde::{Deserialize, Serialize};
