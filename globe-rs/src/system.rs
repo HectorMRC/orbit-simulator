@@ -8,6 +8,13 @@ use crate::{
     Distance, Luminosity, Mass, Orbit, Radian, Velocity, GRAVITATIONAL_CONSTANT,
 };
 
+/// The period and direction of a rotation.
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Rotation {
+    pub period: Duration,
+    pub clockwise: bool,
+}
+
 /// An arbitrary spherical body.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Body {
@@ -15,8 +22,8 @@ pub struct Body {
     pub name: Name<Self>,
     /// The radius of the body.
     pub radius: Distance,
-    /// The rotation period over its own axis.
-    pub rotation: Duration,
+    /// The rotation of the body over its own axis.
+    pub spin: Rotation,
     /// The mass of the body.
     pub mass: Mass,
     /// The luminosity of the body.
@@ -36,7 +43,7 @@ impl Body {
 
     /// The time it takes to the body to complete a rotation.
     pub fn sideral_period(&self) -> Duration {
-        self.rotation
+        self.spin.period
     }
 }
 
@@ -78,7 +85,7 @@ impl<O: Orbit> System<O> {
 
     /// Returns the radius of the system.
     pub fn radius(&self) -> Distance {
-        let radius = self.orbit.map(|orbit| orbit.radius()).unwrap_or_default();
+        let radius = self.primary.radius + self.orbit.map(|orbit| orbit.radius()).unwrap_or_default();
 
         self.secondary
             .iter()
@@ -96,20 +103,6 @@ impl<O: Orbit> System<O> {
         self.secondary.iter().find_map(|system| system.system(name))
     }
 }
-
-// impl<O> System<O> {
-//     /// Returns the time it takes to the system to get into the same state.
-//     pub fn state_period(&self) -> Frequency {
-//         // fn orbit_frequency(system: &System, central_body: &Body) -> Frequency {
-//         //     let radius = system.distance + system.primary.radius + central_body.radius;
-//         //     let start = Coords::default().with_y(radius.as_km());
-
-//         //     Arc::default().with_start(start).frequency(&central_body)
-//         // }
-
-//         todo!()
-//     }
-// }
 
 /// The time it takes for a body to complete a "solar day" relative to another body.
 #[derive(Debug)]
@@ -214,9 +207,9 @@ pub struct SystemState {
 
 impl SystemState {
     fn spin_at(mut time: Duration, body: &Body) -> Radian {
-        time = Duration::from_secs_f64(time.as_secs_f64() % body.rotation.as_secs_f64());
+        time = Duration::from_secs_f64(time.as_secs_f64() % body.spin.period.as_secs_f64());
 
-        (Radian::from(body.rotation).as_f64() * time.as_secs() as f64).into()
+        (Radian::from(body.spin.period).as_f64() * time.as_secs() as f64).into()
     }
 
     fn position_at<O: Orbit>(
