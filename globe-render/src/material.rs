@@ -98,6 +98,8 @@ pub struct OrbitTrailMaterial {
     pub trail_color: Vec4,
     #[uniform(4)]
     pub trail_theta: f32,
+    #[uniform(5)]
+    pub clockwise: u32,
 }
 
 impl Material2d for OrbitTrailMaterial {

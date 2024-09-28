@@ -5,9 +5,11 @@
 @group(2) @binding(2) var<uniform> background_color: vec4<f32>;
 @group(2) @binding(3) var<uniform> trail_color: vec4<f32>;
 @group(2) @binding(4) var<uniform> trail_theta: f32;
+@group(2) @binding(5) var<uniform> clockwise: u32;  
 
 const PI = 3.14159265359;
 
+// Given a radian in the range of [-π, π], returns the value in the range of [0, 2π].
 fn positive_radiants(value: f32) -> f32 {
     if value < 0. {
         return value + 2*PI;
@@ -25,11 +27,16 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
         vec4(0., 0., 0., 1.),
     );
 
-    let rel_origin = vec4(origin.x, origin.y, origin.z, 1.) * translation_matrix;
-    let origin_theta = positive_radiants(atan2(rel_origin.y, rel_origin.x));
+    var orientation = 1.; // counter-clockwise
+    if bool(clockwise) {
+        orientation = -1.;
+    }
 
-    let rel_worls_position = mesh.world_position * translation_matrix;
-    var fragment_theta = positive_radiants(atan2(rel_worls_position.y, rel_worls_position.x));
+    let rel_origin = vec4(origin.x, origin.y, origin.z, 1.) * translation_matrix;
+    let origin_theta = orientation * positive_radiants(atan2(rel_origin.y, rel_origin.x));
+
+    let rel_world_position = mesh.world_position * translation_matrix;
+    let fragment_theta = orientation * positive_radiants(atan2(rel_world_position.y, rel_world_position.x));
 
     var theta_diff = origin_theta - fragment_theta; 
     if origin_theta < fragment_theta {
@@ -41,5 +48,5 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     }
   
     let blend = theta_diff / trail_theta;
-    return mix(trail_color,     background_color, vec4(blend, blend, blend, blend));
+    return mix(trail_color, background_color, vec4(blend, blend, blend, blend));
 }

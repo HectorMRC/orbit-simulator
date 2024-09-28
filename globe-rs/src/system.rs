@@ -85,7 +85,8 @@ impl<O: Orbit> System<O> {
 
     /// Returns the radius of the system.
     pub fn radius(&self) -> Distance {
-        let radius = self.primary.radius + self.orbit.map(|orbit| orbit.radius()).unwrap_or_default();
+        let radius =
+            self.primary.radius + self.orbit.map(|orbit| orbit.radius()).unwrap_or_default();
 
         self.secondary
             .iter()

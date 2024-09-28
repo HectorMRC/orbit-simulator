@@ -98,7 +98,13 @@ impl Orbit for Circle {
         let period = self.period(orbitee);
         time = Duration::from_secs_f64(time.as_secs_f64() % period.as_secs_f64());
 
-        Radian::TWO_PI / period.as_secs_f64() * time.as_secs_f64()
+        let theta = Radian::TWO_PI / period.as_secs_f64() * time.as_secs_f64();
+
+        if self.clockwise {
+            return -theta;
+        }
+
+        theta
     }
 
     fn period(&self, orbitee: &Body) -> Duration {
@@ -118,6 +124,10 @@ impl Orbit for Circle {
 
     fn radius(&self) -> Distance {
         self.radius
+    }
+
+    fn is_clockwise(&self) -> bool {
+        self.clockwise
     }
 }
 

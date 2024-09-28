@@ -1,7 +1,7 @@
 use std::{
     f64::consts::PI,
     fmt::Debug,
-    ops::{Add, Div, Mul, Sub},
+    ops::{Add, Div, Mul, Neg, Sub},
     time::Duration,
 };
 
@@ -34,6 +34,14 @@ impl From<Duration> for Radian {
     fn from(period: Duration) -> Self {
         let hz = 1. / period.as_secs_f64();
         (hz * Self::TWO_PI.as_f64()).into()
+    }
+}
+
+impl Neg for Radian {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        (-self.0 .0).into()
     }
 }
 

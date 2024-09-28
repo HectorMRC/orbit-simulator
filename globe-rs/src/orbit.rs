@@ -17,11 +17,10 @@ pub trait Orbit: Copy + Sample {
     /// The maximum velocity of the object across the orbit.
     fn max_velocity(&self, orbitee: &Body) -> Velocity;
 
-    /// The orbital velocity of the object at ha given theta.
+    /// The orbital velocity of the object at ha given time.
     fn velocity_at(&self, time: Duration, orbitee: &Body) -> Velocity;
 
-    /// Returns the position of the object at the given theta of the orbit after
-    /// a given duration.
+    /// Returns the position of the object at the given time.
     fn position_at(&self, time: Duration, orbitee: &Body) -> Coords;
 
     /// Returns the radiant of the orbit at which is located the object.
@@ -37,6 +36,10 @@ pub trait Orbit: Copy + Sample {
     /// orbitee is located.
     fn focus(&self) -> Coords;
 
-    /// Returns the distance from the orbit's focus to the outer-most orbit.
+    /// Returns the distance from the orbit's focus to its outer-most boundary.
     fn radius(&self) -> Distance;
+
+    /// Returns true if, and only if, the object is orbiting clockwise. Otheriwise
+    /// returns false.
+    fn is_clockwise(&self) -> bool;
 }

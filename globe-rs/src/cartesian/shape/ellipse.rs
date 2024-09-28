@@ -96,7 +96,7 @@ impl Orbit for Ellipse {
         };
 
         for _ in 0..100 {
-            // Calculate f(E) = E - e*sin(E) - M and its derivative f'(E) = 1 - e*cos(E)
+            // calculate f(E) = E - e*sin(E) - M and its derivative f'(E) = 1 - e*cos(E)
             let f = eccentric_anomaly
                 - self.eccentricity.as_f64() * eccentric_anomaly.sin()
                 - mean_anomaly;
@@ -105,9 +105,16 @@ impl Orbit for Ellipse {
             eccentric_anomaly -= f / f_prime;
         }
 
-        (2.0 * ((1.0 + self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).sin())
-            .atan2((1.0 - self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).cos()))
-        .into()
+        let theta = Radian::from(
+            2.0 * ((1.0 + self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).sin())
+                .atan2((1.0 - self.eccentricity.as_f64()).sqrt() * (eccentric_anomaly / 2.0).cos()),
+        );
+
+        if self.clockwise {
+            return -theta;
+        }
+
+        theta
     }
 
     fn period(&self, orbitee: &Body) -> Duration {
@@ -137,6 +144,10 @@ impl Orbit for Ellipse {
 
     fn radius(&self) -> Distance {
         self.semi_major_axis + self.linear_eccentricity()
+    }
+
+    fn is_clockwise(&self) -> bool {
+        self.clockwise
     }
 }
 

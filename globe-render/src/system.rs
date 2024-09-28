@@ -269,6 +269,7 @@ pub fn spawn_orbits<O>(
                     trail_color: color::KHAKI.to_linear().to_vec4(),
                     trail_theta: (body.velocity.as_meters_sec() / orbit.spec.radius().as_meters()
                         * trail_ratio) as f32,
+                    clockwise: orbit.spec.is_clockwise().then_some(1).unwrap_or_default(),
                 }),
                 ..default()
             },
