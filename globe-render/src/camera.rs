@@ -27,11 +27,12 @@ where
             },
             projection: OrthographicProjection {
                 near: 0.,
-                far: system_radius,
+                far: 2. * system_radius,
                 viewport_origin: Vec2::new(0.5, 0.5),
                 scaling_mode: ScalingMode::WindowSize(1. / initial_scale),
                 area: Default::default(),
             },
+            transform: Transform::from_xyz(0., 0., system_radius),
             ..Default::default()
         },
         MainCamera { initial_scale },
