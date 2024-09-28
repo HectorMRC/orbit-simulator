@@ -9,7 +9,7 @@ use crate::{camera::MainCamera, cursor::Cursor};
 /// Logarithmically zooms towards the pointed object.
 pub fn logarithmic(
     mut scroll: EventReader<MouseWheel>,
-    mut camera: Query<(&mut OrthographicProjection, &mut Transform), With<MainCamera>>,
+    mut camera: Query<(&mut Projection, &mut Transform), With<MainCamera>>,
     keys: Res<ButtonInput<KeyCode>>,
     cursor: Res<Cursor>,
 ) {
@@ -19,6 +19,10 @@ pub fn logarithmic(
     }
 
     let (mut projection, mut transform) = camera.single_mut();
+    let Projection::Orthographic(projection) = projection.as_mut() else {
+        panic!("projection must be orthographic");
+    };
+
     for scroll in scroll.read() {
         let orientation = match scroll.unit {
             MouseScrollUnit::Line => -1., // using hardware with fixed steps (e.g. mice wheel)

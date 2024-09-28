@@ -1,4 +1,4 @@
-use bevy::{prelude::*, sprite::Material2dPlugin};
+use bevy::prelude::*;
 use globe_rs::cartesian::shape::Ellipse;
 use material::{OrbitTrailMaterial, RadialGradientMaterial};
 
@@ -20,8 +20,8 @@ impl Plugin for Globe2DPlugin {
     fn build(&self, app: &mut App) {
         add_orbital_system::<Ellipse>(app)
             .add_plugins(DefaultPlugins)
-            .add_plugins(Material2dPlugin::<OrbitTrailMaterial>::default())
-            .add_plugins(Material2dPlugin::<RadialGradientMaterial>::default())
+            .add_plugins(MaterialPlugin::<OrbitTrailMaterial>::default())
+            .add_plugins(MaterialPlugin::<RadialGradientMaterial>::default())
             .init_resource::<cursor::Cursor>()
             .init_resource::<subject::Subject>()
             .init_resource::<time::WorldTime>()

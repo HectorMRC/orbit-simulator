@@ -6,7 +6,7 @@ use crate::camera::MainCamera;
 #[derive(Resource, Default, Clone, Copy)]
 pub struct Cursor {
     pub position: Vec3,
-}
+}   
 
 /// Updates the [Cursor] resource with the corresponding world-coordinates.
 pub fn into_world_coords(

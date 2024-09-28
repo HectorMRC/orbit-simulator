@@ -28,6 +28,16 @@ impl Material2d for RadialGradientMaterial {
     }
 }
 
+impl Material for RadialGradientMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/radial_gradient.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Blend
+    }
+}
+
 struct ColorSegment {
     color: [f32; 4],
     start: f32,
@@ -109,5 +119,15 @@ impl Material2d for OrbitTrailMaterial {
 
     fn alpha_mode(&self) -> AlphaMode2d {
         AlphaMode2d::Blend
+    }
+}
+
+impl Material for OrbitTrailMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/orbit_trail.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Blend
     }
 }

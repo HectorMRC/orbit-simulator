@@ -5,11 +5,10 @@ use bevy::{
     prelude::*,
     render::{
         camera::ScalingMode,
-        mesh::{AnnulusMeshBuilder, CircleMeshBuilder, PrimitiveTopology},
+        mesh::{AnnulusMeshBuilder, PrimitiveTopology, SphereKind, SphereMeshBuilder},
         render_asset::RenderAssetUsages,
         storage::ShaderStorageBuffer,
     },
-    sprite::{AlphaMode2d, MaterialMesh2dBundle, Mesh2dHandle},
 };
 use globe_rs::{
     cartesian::{transform::Translation, Coords},
@@ -23,8 +22,8 @@ use crate::{
     time::WorldTime,
 };
 
-const ORBIT_Z_PLANE: f32 = -1.;
-const HABITABLE_ZONE_Z_PLANE: f32 = -2.;
+const SPHERE_SUBDIVISIONS: u32 = 16;
+const MESH_RESOLUTION: u32 = 255;
 
 /// The orbital system.
 #[derive(Resource)]
@@ -102,7 +101,7 @@ pub fn clear_all<O>(
 pub fn spawn_bodies<O>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     system: Res<System<O>>,
     time: Res<WorldTime>,
 ) where
@@ -111,7 +110,7 @@ pub fn spawn_bodies<O>(
     fn spawn_bodies_immersion<O>(
         commands: &mut Commands,
         meshes: &mut Assets<Mesh>,
-        materials: &mut Assets<ColorMaterial>,
+        materials: &mut Assets<StandardMaterial>,
         system: &globe_rs::System<O>,
         state: SystemState,
         parent: Option<(Name<globe_rs::Body>, Coords)>,
@@ -125,18 +124,18 @@ pub fn spawn_bodies<O>(
         );
 
         let radius = system.primary.radius.as_meters() as f32;
-        let material = MaterialMesh2dBundle {
-            mesh: Mesh2dHandle(meshes.add(CircleMeshBuilder {
-                circle: Circle::new(radius),
-                resolution: 255,
-            })),
-            material: materials.add(ColorMaterial {
-                color: if system.primary.is_luminous() {
+        let material = MaterialMeshBundle {
+            mesh: meshes.add(SphereMeshBuilder {
+                sphere: Sphere::new(radius),
+                kind: SphereKind::Ico { subdivisions: SPHERE_SUBDIVISIONS },
+            }),
+            material: materials.add(StandardMaterial {
+                base_color: if system.primary.is_luminous() {
                     color::PERSIAN_ORANGE
                 } else {
                     color::KHAKI
                 },
-                alpha_mode: AlphaMode2d::Blend,
+                alpha_mode: AlphaMode::Blend,
                 ..Default::default()
             }),
             transform,
@@ -150,19 +149,28 @@ pub fn spawn_bodies<O>(
             theta: state.theta,
         };
 
+        let mut entity = commands.spawn((material, body));
         if let (Some((system, focus)), Some(spec)) = (parent, system.orbit) {
-            commands.spawn((
-                material,
-                body,
-                Orbit {
-                    system,
-                    focus,
-                    spec,
-                },
-            ));
-        } else {
-            commands.spawn((material, body));
+            entity = entity.insert(Orbit {
+                system, 
+                focus,
+                spec,
+            });
         }
+        
+        entity.with_child(PointLightBundle {
+            point_light: PointLight {   
+                radius,
+                color: Color::WHITE,
+                intensity: system.primary.luminosity.as_lm() as f32,
+                range: system.radius().as_meters() as f32,
+                shadows_enabled: true,
+                // shadow_depth_bias: todo!(),
+                // shadow_normal_bias: todo!(),
+                ..Default::default()
+            },
+            ..default()
+        });
 
         system
             .secondary
@@ -210,7 +218,7 @@ pub fn spawn_orbits<O>(
         let mut orbit_points: Vec<[f32; 3]> = orbit
             .spec
             .with_initial_theta(body.theta)
-            .sample(1024)
+            .sample(MESH_RESOLUTION as usize)
             .points
             .into_iter()
             .map(|coord| {
@@ -228,6 +236,8 @@ pub fn spawn_orbits<O>(
             PrimitiveTopology::LineStrip,
             RenderAssetUsages::RENDER_WORLD,
         )
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, vec![Vec3::new(0., 0., 1.); orbit_points.len()])
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, vec![Vec2::new(0., 0.); orbit_points.len()])
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, orbit_points);
 
         let trail_ratio = stats
@@ -251,9 +261,8 @@ pub fn spawn_orbits<O>(
             .unwrap_or_default();
 
         commands.spawn((
-            MaterialMesh2dBundle {
-                mesh: Mesh2dHandle(meshes.add(orbit_mesh)),
-                transform: Transform::from_xyz(0., 0., ORBIT_Z_PLANE),
+            MaterialMeshBundle {
+                mesh: meshes.add(orbit_mesh),
                 material: materials.add(OrbitTrailMaterial {
                     center: Vec3 {
                         x: (orbit.focus + orbit.spec.focus()).x() as f32,
@@ -283,10 +292,14 @@ pub fn spawn_habitable_zone(
     mut meshes: ResMut<Assets<Mesh>>,
     mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
     mut materials: ResMut<Assets<RadialGradientMaterial>>,
-    camera: Query<(&OrthographicProjection, &MainCamera), With<MainCamera>>,
+    camera: Query<(&Projection, &MainCamera), With<MainCamera>>,
     bodies: Query<&Body>,
 ) {
     let (projection, camera) = camera.single();
+    let Projection::Orthographic(projection) = projection else {
+        panic!("projection must be orthographic");
+    };
+
     let scale = match projection.scaling_mode {
         ScalingMode::WindowSize(inv_scale) => 1. / inv_scale,
         _ => panic!("scaling mode must be window size"),
@@ -304,7 +317,7 @@ pub fn spawn_habitable_zone(
             let transform = Transform::from_xyz(
                 body.position.y() as f32,
                 -body.position.x() as f32,
-                HABITABLE_ZONE_Z_PLANE,
+                0.,
             );
 
             let inner_radius = hz.inner_edge.as_meters() as f32;
@@ -313,12 +326,12 @@ pub fn spawn_habitable_zone(
 
             let transparency = f32::min(0.1, scale / camera.initial_scale * 0.1);
 
-            commands.spawn((
-                MaterialMesh2dBundle {
-                    mesh: Mesh2dHandle(meshes.add(AnnulusMeshBuilder {
+            commands.spawn((    
+                MaterialMeshBundle {
+                    mesh: meshes.add(AnnulusMeshBuilder {
                         annulus: Annulus::new(inner_radius, outer_radius),
-                        resolution: 255,
-                    })),
+                        resolution: MESH_RESOLUTION,
+                    }),
                     transform,
                     material: materials.add(
                         RadialGradientMaterialBuilder::new(&mut buffers)

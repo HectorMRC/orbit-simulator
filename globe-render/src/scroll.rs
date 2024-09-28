@@ -5,7 +5,7 @@ use crate::{camera::MainCamera, subject::Subject};
 /// Scrolls linearly towards the mouse wheel direction.
 pub fn linear(
     mut scroll: EventReader<MouseWheel>,
-    mut camera_query: Query<(&mut Transform, &OrthographicProjection), With<MainCamera>>,
+    mut camera_query: Query<(&mut Transform, &Projection), With<MainCamera>>,
     mut subject: ResMut<Subject>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
@@ -15,6 +15,9 @@ pub fn linear(
     }
 
     let (mut transform, projection) = camera_query.single_mut();
+    let Projection::Orthographic(projection) = projection else {
+        panic!("projection must be orthographic");
+    };
 
     let scale = match projection.scaling_mode {
         ScalingMode::WindowSize(inv_scale) => 1. / inv_scale,

@@ -59,8 +59,8 @@ impl From<&Body> for HabitableZone {
         let sun_relative = body.luminosity / Luminosity::SUN;
 
         Self {
-            inner_edge: Distance::ASTRONOMICAL_UNIT * (sun_relative.as_watts() / 1.1).sqrt(),
-            outer_edge: Distance::ASTRONOMICAL_UNIT * (sun_relative.as_watts() / 0.53).sqrt(),
+            inner_edge: Distance::ASTRONOMICAL_UNIT * (sun_relative.as_lm() / 1.1).sqrt(),
+            outer_edge: Distance::ASTRONOMICAL_UNIT * (sun_relative.as_lm() / 0.53).sqrt(),
         }
     }
 }

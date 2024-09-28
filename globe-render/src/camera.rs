@@ -20,19 +20,19 @@ where
         (2. * system_radius) / window.resolution.width().min(window.resolution.height());
 
     commands.spawn((
-        Camera2dBundle {
+        Camera3dBundle {
             camera: Camera {
                 clear_color: ClearColorConfig::Custom(color::NIGHT),
                 ..default()
             },
-            projection: OrthographicProjection {
+            projection: Projection::Orthographic(OrthographicProjection {
                 near: 0.,
                 far: 2. * system_radius,
                 viewport_origin: Vec2::new(0.5, 0.5),
                 scaling_mode: ScalingMode::WindowSize(1. / initial_scale),
                 area: Default::default(),
-            },
-            transform: Transform::from_xyz(0., 0., system_radius),
+            }),
+            transform: Transform::from_xyz(0., 0., system_radius).looking_at(Vec3::new(0., 0., 0.), Dir3::Y),
             ..Default::default()
         },
         MainCamera { initial_scale },
