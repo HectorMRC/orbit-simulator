@@ -1,14 +1,10 @@
-pub mod cartesian;
+use std::fmt::Display;
 
+pub mod cartesian;
 pub mod geographic;
 
 mod orbit;
-use std::fmt::Display;
-
 pub use orbit::*;
-
-mod system;
-pub use system::*;
 
 mod distance;
 pub use distance::*;

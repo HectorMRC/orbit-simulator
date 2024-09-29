@@ -11,15 +11,13 @@ use bevy::{
     },
 };
 use globe_rs::{
-    cartesian::{transform::Translation, Coords},
-    Luminosity, Radian, SystemState, Velocity,
+    cartesian::{shape::{Ellipse, Sample as _}, transform::Translation, Coords}, Luminosity, Orbit as _, Radian, SystemState, Velocity
 };
 
 use crate::{
     camera::MainCamera,
     color,
-    material::{OrbitTrailMaterial, RadialGradientMaterial, RadialGradientMaterialBuilder},
-    time::WorldTime,
+    material::{OrbitTrailMaterial, RadialGradientMaterial, RadialGradientMaterialBuilder}, ui::clock::Clock,
 };
 
 const SPHERE_SUBDIVISIONS: u32 = 16;
@@ -27,12 +25,12 @@ const MESH_RESOLUTION: u32 = 255;
 
 /// The orbital system.
 #[derive(Resource)]
-pub struct System<O: globe_rs::Orbit> {
-    pub spec: globe_rs::System<O>,
+pub struct System {
+    pub spec: globe_rs::System<Ellipse>,
 }
 
-impl<O: globe_rs::Orbit> From<globe_rs::System<O>> for System<O> {
-    fn from(value: globe_rs::System<O>) -> Self {
+impl From<globe_rs::System<Ellipse>> for System {
+    fn from(value: globe_rs::System<Ellipse>) -> Self {
         Self { spec: value }
     }
 }
@@ -64,27 +62,22 @@ pub struct HabitableZone;
 
 /// An orbit in the system.
 #[derive(Component, Clone)]
-pub struct Orbit<O: globe_rs::Orbit> {
+pub struct Orbit {
     pub system: Name<globe_rs::Body>,
     pub focus: Coords,
-    pub spec: O,
+    pub spec: Ellipse,
 }
 
-pub fn describe<O>(mut commands: Commands, system: Res<System<O>>)
-where
-    O: 'static + globe_rs::Orbit + Sync + Send,
-{
+pub fn describe(mut commands: Commands, system: Res<System>) {
     commands.insert_resource(SystemStats::from(globe_rs::SystemStats::from(&system.spec)));
 }
 
-pub fn clear_all<O>(
+pub fn clear_all(
     mut commands: Commands,
     bodies: Query<Entity, With<Body>>,
-    orbits: Query<Entity, With<Orbit<O>>>,
+    orbits: Query<Entity, With<Orbit>>,
     habitable_zone: Query<Entity, With<HabitableZone>>,
-) where
-    O: 'static + globe_rs::Orbit + Sync + Send,
-{
+) {
     bodies.iter().for_each(|body| {
         commands.entity(body).clear();
     });
@@ -102,21 +95,17 @@ pub fn spawn_bodies<O>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    system: Res<System<O>>,
-    time: Res<WorldTime>,
-) where
-    O: 'static + globe_rs::Orbit + Sync + Send,
-{
-    fn spawn_bodies_immersion<O>(
+    system: Res<System>,
+    clock: Res<Clock>,
+) {
+    fn spawn_bodies_immersion(
         commands: &mut Commands,
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<StandardMaterial>,
-        system: &globe_rs::System<O>,
+        system: &globe_rs::System<Ellipse>,
         state: SystemState,
         parent: Option<(Name<globe_rs::Body>, Coords)>,
-    ) where
-        O: 'static + globe_rs::Orbit + Sync + Send,
-    {
+    ) {
         let transform = Transform::from_xyz(
             state.position.x() as f32,
             state.position.y() as f32,
@@ -158,26 +147,26 @@ pub fn spawn_bodies<O>(
             });
         }
         
-        entity.with_child(PointLightBundle {
-            point_light: PointLight {   
-                radius,
-                color: Color::WHITE,
-                intensity: system.primary.luminosity.as_lm() as f32,
-                range: system.radius().as_meters() as f32,
-                shadows_enabled: true,
-                // shadow_depth_bias: todo!(),
-                // shadow_normal_bias: todo!(),
-                ..Default::default()
-            },
-            ..default()
-        });
+        // entity.with_child(PointLightBundle {
+        //     point_light: PointLight {   
+        //         radius,
+        //         color: Color::WHITE,
+        //         intensity: system.primary.luminosity.as_lm() as f32,
+        //         range: system.radius().as_meters() as f32,
+        //         shadows_enabled: true,
+        //         // shadow_depth_bias: todo!(),
+        //         // shadow_normal_bias: todo!(),
+        //         ..Default::default()
+        //     },
+        //     ..default()
+        // });
 
         system
             .secondary
             .iter()
             .zip(state.secondary)
             .for_each(|(subsystem, substate)| {
-                spawn_bodies_immersion::<O>(
+                spawn_bodies_immersion(
                     commands,
                     meshes,
                     materials,
@@ -188,25 +177,23 @@ pub fn spawn_bodies<O>(
             });
     }
 
-    spawn_bodies_immersion::<O>(
+    spawn_bodies_immersion(
         &mut commands,
         &mut meshes,
         &mut materials,
         &system.spec,
-        system.spec.state_at(time.elapsed_time),
+        system.spec.state_at(clock.elapsed_time),
         None,
     );
 }
 
-pub fn spawn_orbits<O>(
+pub fn spawn_orbits(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<OrbitTrailMaterial>>,
-    orbits: Query<(&Body, &Orbit<O>), With<Orbit<O>>>,
+    orbits: Query<(&Body, &Orbit), With<Orbit>>,
     system: Res<SystemStats>,
-) where
-    O: 'static + globe_rs::Orbit + Sync + Send,
-{
+) {
     orbits.into_iter().for_each(|(body, orbit)| {
         let Some(stats) = system.spec.stats(&orbit.system) else {
             panic!(

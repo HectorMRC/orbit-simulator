@@ -38,22 +38,28 @@ impl Div for Luminosity {
 impl Debug for Luminosity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("Luminosity")
-            .field(&format!("{} lm", self.0))
+            .field(&format!("{} watts", self.0))
             .finish()
     }
 }
 
 impl Luminosity {
-    pub const SUN: Self = Self(PositiveFloat(3.75e28));
+    const LUMENS_PER_WATT: f64 = 93.;
+    pub const SUN: Self = Self(PositiveFloat(3.828e26));
     pub const ZERO: Self = Self(PositiveFloat::ZERO);
 
-    /// Returns a new luminosity of lm lumens.
-    pub fn lm(lumens: f64) -> Self {
-        Self(lumens.into())
+    /// Returns a new luminosity representing the given watts.
+    pub fn watts(watts: f64) -> Self {
+        Self(watts.into())
+    }
+
+    /// Returns a [f64] representing the luminosity in watts.
+    pub fn as_watts(&self) -> f64 {
+        self.0 .0
     }
 
     /// Returns a [f64] representing the luminosity in lumens.
     pub fn as_lm(&self) -> f64 {
-        self.0 .0
+        Self::LUMENS_PER_WATT * self.as_watts() / Self::SUN.as_watts()
     }
 }

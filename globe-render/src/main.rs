@@ -2,11 +2,11 @@ use std::{str::FromStr, time::Duration};
 
 use alvidir::name::Name;
 use bevy::prelude::*;
-use globe_render::{system::System, Globe2DPlugin};
+use globe_render::GlobeRsPlugin;
 use globe_rs::{cartesian::shape::Ellipse, Body, Distance, Luminosity, Mass, Ratio, Rotation};
 
 fn main() {
-    let system = globe_rs::System::<Ellipse> {
+    let system = globe_rs::OrbitalSystem::<Ellipse> {
         primary: Body {
             name: Name::from_str("Sun").unwrap(),
             radius: Distance::km(696_340.),
@@ -19,7 +19,7 @@ fn main() {
         },
         orbit: None,
         secondary: vec![
-            globe_rs::System {
+            globe_rs::OrbitalSystem {
                 primary: Body {
                     name: Name::from_str("Mercury").unwrap(),
                     radius: Distance::km(2_439.7),
@@ -130,8 +130,5 @@ fn main() {
         ],
     };
 
-    App::new()
-        .insert_resource(System::from(system))
-        .add_plugins(Globe2DPlugin)
-        .run();
+    App::new().add_plugins(GlobeRsPlugin { system }).run();
 }
