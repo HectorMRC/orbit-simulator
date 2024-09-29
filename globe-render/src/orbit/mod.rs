@@ -8,7 +8,7 @@ use bevy::{
 };
 use globe_rs::cartesian::{shape::Ellipse, Coords};
 
-use crate::{camera::MainCamera, color, cursor::Cursor, ui::clock::TickEvent};
+use crate::{color, cursor::Cursor, ui::clock::TickEvent};
 
 pub mod scroll;
 pub mod zoom;
@@ -282,8 +282,7 @@ impl OrbitalSystem {
             .filter_map(|(body, transform)| {
                 system
                     .spec
-                    .system(&body.name)
-                    .and_then(|system| Some((system, body, transform)))
+                    .system(&body.name).map(|system| (system, body, transform))
             })
             .filter(|(system, _, transform)| {
                 transform.translation.distance(cursor.position)

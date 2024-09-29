@@ -3,7 +3,7 @@ use bevy::{prelude::*, render::camera::ScalingMode};
 
 use crate::{
     color,
-    orbit::{BodyEvent, Clicked, OrbitalSystem, OrbitalSystemState, Updated},
+    orbit::{BodyEvent, Clicked, OrbitalSystem, Updated},
 };
 
 /// The main camera.
