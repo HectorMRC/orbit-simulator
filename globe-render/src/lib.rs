@@ -9,6 +9,7 @@ use ui::Ui;
 mod camera;
 mod color;
 mod cursor;
+mod event;
 mod material;
 mod orbit;
 mod ui;

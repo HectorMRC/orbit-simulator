@@ -1,9 +1,14 @@
 use alvidir::name::Name;
-use bevy::{prelude::*, render::camera::ScalingMode};
+use bevy::{
+    core_pipeline::{bloom::Bloom, tonemapping::Tonemapping},
+    prelude::*,
+    render::camera::ScalingMode,
+};
 
 use crate::{
     color,
-    orbit::{BodyEvent, Clicked, OrbitalSystem, Updated},
+    event::{Clicked, Event, Updated},
+    orbit::{Body, OrbitalSystem, OrbitalSystemState},
 };
 
 /// The main camera.
@@ -34,6 +39,7 @@ impl MainCamera {
             Camera3dBundle {
                 camera: Camera {
                     clear_color: ClearColorConfig::Custom(color::NIGHT),
+                    hdr: true,
                     ..default()
                 },
                 projection: Projection::Orthographic(OrthographicProjection {
@@ -45,8 +51,10 @@ impl MainCamera {
                 }),
                 transform: Transform::from_xyz(0., 0., system_radius)
                     .looking_at(Vec3::new(0., 0., 0.), Dir3::Y),
+                tonemapping: Tonemapping::TonyMcMapface,
                 ..Default::default()
             },
+            Bloom::NATURAL,
             MainCamera {
                 initial_scale,
                 follow: None,
@@ -55,36 +63,43 @@ impl MainCamera {
     }
 
     pub fn on_body_clicked(
-        mut body_clicked: EventReader<BodyEvent<Clicked>>,
+        mut body_clicked: EventReader<Event<Body, Clicked, Body>>,
         mut camera: Query<(&mut MainCamera, &mut Transform), With<MainCamera>>,
+        state: Res<OrbitalSystemState>,
     ) {
-        let Some(event) = body_clicked.read().last() else {
+        let Some(state) = body_clicked
+            .read()
+            .last()
+            .and_then(|event| state.spec.state(&event.data.name))
+        else {
             return;
         };
 
         let (mut camera, mut transform) = camera.single_mut();
 
-        camera.follow = Some(event.body.name.clone());
-        transform.translation.x = event.body.position.x() as f32;
-        transform.translation.y = event.body.position.y() as f32;
+        camera.follow = Some(state.body.clone());
+        transform.translation.x = state.position.x() as f32;
+        transform.translation.y = state.position.y() as f32;
     }
 
     pub fn on_body_updated(
-        mut body_updated: EventReader<BodyEvent<Updated>>,
+        mut body_updated: EventReader<Event<Body, Updated, Body>>,
         mut camera: Query<(&mut Transform, &MainCamera), With<MainCamera>>,
+        state: Res<OrbitalSystemState>,
     ) {
         let (mut transform, camera) = camera.single_mut();
         let Some(subject) = &camera.follow else {
             return;
         };
 
-        if let Some(event) = body_updated
+        if let Some(state) = body_updated
             .read()
-            .filter(|event| &event.body.name == subject)
+            .filter(|event| &event.data.name == subject)
             .last()
+            .and_then(|event| state.spec.state(&event.data.name))
         {
-            transform.translation.x = event.body.position.x() as f32;
-            transform.translation.y = event.body.position.y() as f32;
+            transform.translation.x = state.position.x() as f32;
+            transform.translation.y = state.position.y() as f32;
         };
     }
 }

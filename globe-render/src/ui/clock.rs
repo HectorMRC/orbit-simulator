@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
-use crate::color;
+use crate::{
+    color,
+    event::{Event, Updated},
+};
 
 use super::{LARGE_PADDING, NUMERIC_FONT, REGULAR_BORDER, REGULAR_PADDING, TEXT_FONT, UI_PADDING};
 
@@ -17,18 +20,6 @@ fn print_mins_and_secs(duration: Duration) -> String {
     let mins = (duration.as_secs_f64() % 3600. / 60.).floor();
     let secs = (duration.as_secs_f64() % 60.).floor();
     format!(":{mins:0>2}:{secs:0>2}")
-}
-
-/// Represents a clock's tick.
-#[derive(Event)]
-pub struct TickEvent {
-    pub at: Duration,
-}
-
-impl From<Duration> for TickEvent {
-    fn from(at: Duration) -> Self {
-        Self { at }
-    }
 }
 
 /// The world's clock.
@@ -52,7 +43,7 @@ impl Default for Clock {
 impl Plugin for Clock {
     fn build(&self, app: &mut App) {
         app.init_resource::<Self>()
-            .add_event::<TickEvent>()
+            .add_event::<Event<Clock, Updated>>()
             .add_systems(Startup, Self::spawn)
             .add_systems(Update, Self::update)
             .add_systems(Update, Self::on_clock_tick_event)
@@ -142,29 +133,34 @@ impl Clock {
     }
 
     /// Updates the clock resource.
-    fn update(mut tick: EventWriter<TickEvent>, mut clock: ResMut<Self>, time: Res<Time>) {
+    fn update(
+        mut tick: EventWriter<Event<Clock, Updated>>,
+        mut clock: ResMut<Self>,
+        time: Res<Time>,
+    ) {
         if let Some(started_at) = clock.started_at {
             let elapsed = time.elapsed();
             let scale = clock.scale.saturating_mul(SECS_PER_HOUR);
             clock.elapsed_time += elapsed.abs_diff(started_at).saturating_mul(scale);
             clock.started_at = Some(elapsed);
 
-            tick.send(clock.elapsed_time.into());
+            tick.send(Event::default());
         }
     }
 
     /// Displays the latest time in the clock component.
     fn on_clock_tick_event(
-        mut tick: EventReader<TickEvent>,
+        mut tick: EventReader<Event<Clock, Updated>>,
         mut clock_ui: Query<&mut Text, With<Clock>>,
+        clock: Res<Self>,
     ) {
-        let Some(tick) = tick.read().last() else {
+        if tick.read().last().is_none() {
             return;
         };
 
         let mut clock_ui = clock_ui.single_mut();
-        clock_ui.sections[0].value = print_hours(tick.at);
-        clock_ui.sections[1].value = print_mins_and_secs(tick.at);
+        clock_ui.sections[0].value = print_hours(clock.elapsed_time);
+        clock_ui.sections[1].value = print_mins_and_secs(clock.elapsed_time);
     }
 
     /// Handles the user input.

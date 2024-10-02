@@ -60,6 +60,6 @@ impl Luminosity {
 
     /// Returns a [f64] representing the luminosity in lumens.
     pub fn as_lm(&self) -> f64 {
-        Self::LUMENS_PER_WATT * self.as_watts() / Self::SUN.as_watts()
+        Self::LUMENS_PER_WATT * self.as_watts()
     }
 }

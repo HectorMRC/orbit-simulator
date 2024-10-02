@@ -18,7 +18,7 @@ impl Plugin for LogarithmicZoom {
 impl LogarithmicZoom {
     fn on_mouse_wheel_event(
         mut scroll: EventReader<MouseWheel>,
-        mut camera: Query<(&mut Projection, &mut Transform), With<MainCamera>>,
+        mut camera: Query<(&mut Projection, &mut Transform, &MainCamera), With<MainCamera>>,
         keys: Res<ButtonInput<KeyCode>>,
         cursor: Res<Cursor>,
     ) {
@@ -27,7 +27,7 @@ impl LogarithmicZoom {
             return;
         }
 
-        let (mut projection, mut transform) = camera.single_mut();
+        let (mut projection, mut transform, camera) = camera.single_mut();
         let Projection::Orthographic(projection) = projection.as_mut() else {
             panic!("projection must be orthographic");
         };
@@ -50,12 +50,14 @@ impl LogarithmicZoom {
             let scale_ratio = scale / new_scale;
             projection.scaling_mode = ScalingMode::WindowSize(1. / new_scale);
 
-            let relative_cursor_before = cursor.position - transform.translation;
-            let relative_cursor_after = relative_cursor_before * scale_ratio;
-            let translation = relative_cursor_after - relative_cursor_before;
+            if camera.follow.is_none() {
+                let relative_cursor_before = cursor.position - transform.translation;
+                let relative_cursor_after = relative_cursor_before * scale_ratio;
+                let translation = relative_cursor_after - relative_cursor_before;
 
-            transform.translation.x += translation.x;
-            transform.translation.y += translation.y;
+                transform.translation.x += translation.x;
+                transform.translation.y += translation.y;
+            }
         }
     }
 }
