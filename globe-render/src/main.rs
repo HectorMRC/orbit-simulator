@@ -2,11 +2,11 @@ use std::{str::FromStr, time::Duration};
 
 use alvidir::name::Name;
 use bevy::prelude::*;
-use globe_render::{system::System, Globe2DPlugin};
+use globe_render::GlobeRsPlugin;
 use globe_rs::{cartesian::shape::Ellipse, Body, Distance, Luminosity, Mass, Ratio, Rotation};
 
 fn main() {
-    let system = globe_rs::System::<Ellipse> {
+    let system = globe_rs::OrbitalSystem::<Ellipse> {
         primary: Body {
             name: Name::from_str("Sun").unwrap(),
             radius: Distance::km(696_340.),
@@ -19,7 +19,7 @@ fn main() {
         },
         orbit: None,
         secondary: vec![
-            globe_rs::System {
+            globe_rs::OrbitalSystem {
                 primary: Body {
                     name: Name::from_str("Mercury").unwrap(),
                     radius: Distance::km(2_439.7),
@@ -37,13 +37,13 @@ fn main() {
                 }),
                 secondary: vec![],
             },
-            globe_rs::System {
+            globe_rs::OrbitalSystem {
                 primary: Body {
                     name: Name::from_str("Venus").unwrap(),
                     radius: Distance::km(2_439.7),
                     spin: Rotation {
                         period: Duration::from_secs(243 * 24 * 3600),
-                        ..Default::default()
+                        clockwise: true,
                     },
                     mass: Mass::kg(4.867e24),
                     luminosity: Luminosity::ZERO,
@@ -55,7 +55,7 @@ fn main() {
                 }),
                 secondary: vec![],
             },
-            globe_rs::System {
+            globe_rs::OrbitalSystem {
                 primary: Body {
                     name: Name::from_str("Earth").unwrap(),
                     radius: Distance::km(6_371.),
@@ -69,13 +69,12 @@ fn main() {
                 orbit: Some(Ellipse {
                     semi_major_axis: Distance::ASTRONOMICAL_UNIT,
                     eccentricity: Ratio::from(0.017),
-                    clockwise: true,
                     ..Default::default()
                 }),
-                secondary: vec![globe_rs::System {
+                secondary: vec![globe_rs::OrbitalSystem {
                     primary: Body {
                         name: Name::from_str("Moon").unwrap(),
-                        radius: Distance::km(1_737.4),
+                        radius: Distance::km(6_371.) * 20., //Distance::km(1_737.4),
                         spin: Rotation {
                             period: Duration::from_secs(27 * 24 * 3600),
                             ..Default::default()
@@ -91,7 +90,7 @@ fn main() {
                     secondary: Default::default(),
                 }],
             },
-            globe_rs::System {
+            globe_rs::OrbitalSystem {
                 primary: Body {
                     name: Name::from_str("Mars").unwrap(),
                     radius: Distance::km(3_389.5),
@@ -109,7 +108,7 @@ fn main() {
                 }),
                 secondary: vec![],
             },
-            globe_rs::System {
+            globe_rs::OrbitalSystem {
                 primary: Body {
                     name: Name::from_str("Jupiter").unwrap(),
                     radius: Distance::km(69_911.),
@@ -130,8 +129,5 @@ fn main() {
         ],
     };
 
-    App::new()
-        .insert_resource(System::from(system))
-        .add_plugins(Globe2DPlugin)
-        .run();
+    App::new().add_plugins(GlobeRsPlugin { system }).run();
 }

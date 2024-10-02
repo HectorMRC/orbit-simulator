@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     cartesian::{transform::Rotation, Coords},
     orbit::{Orbit, GRAVITATIONAL_CONSTANT},
-    system::Body,
-    Distance, Radian, Velocity,
+    Body, Distance, Radian, Velocity,
 };
 
 use super::{Sample, Shape};

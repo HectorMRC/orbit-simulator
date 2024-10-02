@@ -44,14 +44,22 @@ impl Debug for Luminosity {
 }
 
 impl Luminosity {
-    pub const SUN: Self = Self(PositiveFloat(3.846e26));
+    const LUMENS_PER_WATT: f64 = 93.;
+    pub const SUN: Self = Self(PositiveFloat(3.828e26));
     pub const ZERO: Self = Self(PositiveFloat::ZERO);
 
+    /// Returns a new luminosity representing the given watts.
     pub fn watts(watts: f64) -> Self {
         Self(watts.into())
     }
 
+    /// Returns a [f64] representing the luminosity in watts.
     pub fn as_watts(&self) -> f64 {
         self.0 .0
+    }
+
+    /// Returns a [f64] representing the luminosity in lumens.
+    pub fn as_lm(&self) -> f64 {
+        Self::LUMENS_PER_WATT * self.as_watts()
     }
 }
