@@ -1,3 +1,5 @@
+use std::f32::consts::FRAC_PI_2;
+
 use bevy::{input::mouse::MouseWheel, prelude::*, render::camera::ScalingMode};
 
 use crate::camera::MainCamera;
@@ -23,13 +25,17 @@ impl LinearScroll {
         }
 
         let (mut camera, mut transform, projection) = camera_query.single_mut();
-        let Projection::Orthographic(projection) = projection else {
-            panic!("projection must be orthographic");
-        };
+        let scale = match projection {
+            Projection::Orthographic(projection) => {
+                match projection.scaling_mode {
+                    ScalingMode::WindowSize(inv_scale) => 1. / inv_scale,
+                    _ => panic!("scaling mode must be window size"),
+                }
+            },
 
-        let scale = match projection.scaling_mode {
-            ScalingMode::WindowSize(inv_scale) => 1. / inv_scale,
-            _ => panic!("scaling mode must be window size"),
+            Projection::Perspective(projection) => {
+                projection.fov / FRAC_PI_2
+            },
         };
 
         for scroll in scroll.read() {

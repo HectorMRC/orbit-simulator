@@ -1,8 +1,8 @@
+use std::f32::consts::FRAC_PI_2;
+
 use alvidir::name::Name;
 use bevy::{
-    core_pipeline::{bloom::Bloom, tonemapping::Tonemapping},
-    prelude::*,
-    render::camera::ScalingMode,
+    core_pipeline::{bloom::Bloom, tonemapping::Tonemapping}, math::AspectRatio, prelude::*, render::camera::ScalingMode
 };
 
 use crate::{
@@ -37,21 +37,27 @@ impl MainCamera {
 
         commands.spawn((
             Camera3dBundle {
-                camera: Camera {
+                camera: Camera {    
                     clear_color: ClearColorConfig::Custom(color::NIGHT),
-                    hdr: true,
+                    // hdr: true,
                     ..default()
                 },
-                projection: Projection::Orthographic(OrthographicProjection {
+                // projection: Projection::Orthographic(OrthographicProjection {
+                //     near: 0.,
+                //     far: 2. * system_radius,
+                //     viewport_origin: Vec2::new(0.5, 0.5),
+                //     scaling_mode: ScalingMode::WindowSize(1. / initial_scale),
+                //     area: Default::default(),
+                // }),
+                projection: Projection::Perspective(PerspectiveProjection {
+                    fov: FRAC_PI_2  ,
                     near: 0.,
                     far: 2. * system_radius,
-                    viewport_origin: Vec2::new(0.5, 0.5),
-                    scaling_mode: ScalingMode::WindowSize(1. / initial_scale),
-                    area: Default::default(),
+                    ..Default::default()
                 }),
                 transform: Transform::from_xyz(0., 0., system_radius)
-                    .looking_at(Vec3::new(0., 0., 0.), Dir3::Y),
-                tonemapping: Tonemapping::TonyMcMapface,
+                    .looking_at(Vec3::ZERO, Dir3::Y),
+                // tonemapping: Tonemapping::TonyMcMapface,
                 ..Default::default()
             },
             Bloom::NATURAL,

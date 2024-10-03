@@ -6,7 +6,6 @@ use bevy::{
     pbr::CascadeShadowConfigBuilder,
     prelude::*,
     render::{
-        camera::ScalingMode,
         mesh::{AnnulusMeshBuilder, PrimitiveTopology, SphereKind, SphereMeshBuilder},
         render_asset::RenderAssetUsages,
         storage::ShaderStorageBuffer,
@@ -21,7 +20,6 @@ use globe_rs::{
 };
 
 use crate::{
-    camera::MainCamera,
     color,
     cursor::Cursor,
     event::{Clicked, Created, Deleted, Event, Updated},
@@ -304,20 +302,9 @@ impl OrbitalSystem {
         mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
         mut materials: ResMut<Assets<RadialGradientMaterial>>,
         mut body_created: EventReader<Event<Body, Created, Body>>,
-        camera: Query<(&Projection, &MainCamera), With<MainCamera>>,
         state: Res<OrbitalSystemState>,
         system: Res<OrbitalSystem>,
     ) {
-        let (projection, camera) = camera.single();
-        let Projection::Orthographic(projection) = projection else {
-            panic!("projection must be orthographic");
-        };
-
-        let scale = match projection.scaling_mode {
-            ScalingMode::WindowSize(inv_scale) => 1. / inv_scale,
-            _ => panic!("scaling mode must be window size"),
-        };
-
         body_created
             .read()
             .filter_map(|event| {
@@ -340,7 +327,7 @@ impl OrbitalSystem {
                 let outer_radius = hz.outer_edge.as_meters() as f32;
                 let quarter = (outer_radius - inner_radius) / 4.;
 
-                let transparency = f32::min(0.1, scale / camera.initial_scale * 0.1);
+                let transparency = 0.1;
                 let mesh = AnnulusMeshBuilder {
                     annulus: Annulus::new(inner_radius, outer_radius),
                     resolution: MESH_RESOLUTION,
@@ -369,7 +356,7 @@ impl OrbitalSystem {
             });
     }
 
-    #[allow(clippy::too_many_arguments)]
+    
     pub fn spawn_orbit_on_body_created(
         mut commands: Commands,
         mut meshes: ResMut<Assets<Mesh>>,
