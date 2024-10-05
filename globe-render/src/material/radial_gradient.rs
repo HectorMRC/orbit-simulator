@@ -5,7 +5,6 @@ use bevy::{
         render_resource::{AsBindGroup, ShaderRef},
         storage::ShaderStorageBuffer,
     },
-    sprite::{AlphaMode2d, Material2d},
 };
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Default, Clone)]
@@ -18,16 +17,6 @@ pub struct RadialGradientMaterial {
     center: Vec3,
 }
 
-impl Material2d for RadialGradientMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/radial_gradient.wgsl".into()
-    }
-
-    fn alpha_mode(&self) -> AlphaMode2d {
-        AlphaMode2d::Blend
-    }
-}
-
 impl Material for RadialGradientMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/radial_gradient.wgsl".into()
@@ -35,6 +24,10 @@ impl Material for RadialGradientMaterial {
 
     fn alpha_mode(&self) -> AlphaMode {
         AlphaMode::Blend
+    }
+
+    fn depth_bias(&self) -> f32 {
+        -1_000_000.
     }
 }
 

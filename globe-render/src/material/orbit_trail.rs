@@ -1,7 +1,6 @@
 use bevy::{
     prelude::*,
     render::render_resource::{AsBindGroup, ShaderRef},
-    sprite::{AlphaMode2d, Material2d},
 };
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Default, Clone)]
@@ -20,16 +19,6 @@ pub struct OrbitTrailMaterial {
     pub clockwise: u32,
 }
 
-impl Material2d for OrbitTrailMaterial {
-    fn fragment_shader() -> ShaderRef {
-        "shaders/orbit_trail.wgsl".into()
-    }
-
-    fn alpha_mode(&self) -> AlphaMode2d {
-        AlphaMode2d::Blend
-    }
-}
-
 impl Material for OrbitTrailMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/orbit_trail.wgsl".into()
@@ -37,5 +26,9 @@ impl Material for OrbitTrailMaterial {
 
     fn alpha_mode(&self) -> AlphaMode {
         AlphaMode::Blend
+    }
+
+    fn depth_bias(&self) -> f32 {
+        -1_000_000.
     }
 }
