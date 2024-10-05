@@ -210,7 +210,7 @@ impl OrbitalSystem {
     fn on_body_deleted(
         mut commands: Commands,
         mut body_deleted: EventReader<Event<Body, Deleted, Body>>,
-        mut bodies: Query<(Entity, &Body), With<Body>>,
+        mut bodies: Query<(Entity, &Body)>,
     ) {
         body_deleted.read().for_each(|event| {
             bodies
@@ -356,14 +356,13 @@ impl OrbitalSystem {
             });
     }
 
-    
     pub fn spawn_orbit_on_body_created(
         mut commands: Commands,
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<OrbitTrailMaterial>>,
         mut body_created: EventReader<Event<Body, Created, Body>>,
         mut body_updated: EventReader<Event<Body, Updated, Body>>,
-        orbits: Query<(Entity, &Body), With<Orbit>>,
+        orbits: Query<(Entity, &Body)>,
         state: Res<OrbitalSystemState>,
         stats: Res<OrbitalSystemStats>,
         system: Res<OrbitalSystem>,
@@ -478,7 +477,7 @@ impl OrbitalSystem {
     pub fn on_mouse_button_event(
         mut body_clicked: EventWriter<Event<Body, Clicked, Body>>,
         mut mouse_button: EventReader<MouseButtonInput>,
-        bodies: Query<(&Body, &Transform), With<Body>>,
+        bodies: Query<(&Body, &Transform)>,
         system: Res<OrbitalSystem>,
         cursor: Res<Cursor>,
     ) {

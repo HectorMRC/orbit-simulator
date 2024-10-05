@@ -1,4 +1,4 @@
-use std::ops::DerefMut;
+use std::{f32::consts::FRAC_PI_2, ops::DerefMut};
 
 use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
@@ -20,7 +20,7 @@ impl Plugin for LogarithmicZoom {
 impl LogarithmicZoom {
     fn on_mouse_wheel_event(
         mut scroll: EventReader<MouseWheel>,
-        mut camera: Query<(&mut Projection, &mut Transform, &MainCamera), With<MainCamera>>,
+        mut camera: Query<(&MainCamera, &mut Transform, &mut Projection)>,
         keys: Res<ButtonInput<KeyCode>>,
         cursor: Res<Cursor>,
     ) {
@@ -29,17 +29,34 @@ impl LogarithmicZoom {
             return;
         }
 
-        let (mut projection, mut transform, camera) = camera.single_mut();
+        let (camera, mut transform, mut projection) = camera.single_mut();
 
-        for scroll in scroll.read() {
-            let orientation = match scroll.unit {
+        scroll.read().for_each(|event| {
+            if !keys.pressed(KeyCode::ControlLeft) {
+                // zoom required the left ctrl key to be pressed
+                return;
+            }
+
+            let orientation = match event.unit {
                 MouseScrollUnit::Line => -1., // using hardware with fixed steps (e.g. mice wheel)
                 MouseScrollUnit::Pixel => 1., // using fine-grained hardware (e.g. touchpads)
             };
 
             let scale_ratio = match projection.deref_mut() {
-                Projection::Perspective(projection) => Self::on_mouse_wheel_event_for_perspective_projection(projection, scroll, orientation),
-                Projection::Orthographic(projection) => Self::on_mouse_wheel_event_for_orthographic_projection(projection, scroll, orientation),
+                Projection::Perspective(projection) => {
+                    Self::on_mouse_wheel_event_for_perspective_projection(
+                        event,
+                        projection,
+                        orientation,
+                    )
+                }
+                Projection::Orthographic(projection) => {
+                    Self::on_mouse_wheel_event_for_orthographic_projection(
+                        event,
+                        projection,
+                        orientation,
+                    )
+                }
             };
 
             if camera.follow.is_none() {
@@ -50,12 +67,12 @@ impl LogarithmicZoom {
                 transform.translation.x += translation.x;
                 transform.translation.y += translation.y;
             }
-        }
+        });
     }
 
     fn on_mouse_wheel_event_for_orthographic_projection(
+        event: &MouseWheel,
         projection: &mut OrthographicProjection,
-        scroll: &MouseWheel,
         orientation: f32,
     ) -> f32 {
         let scale = match projection.scaling_mode {
@@ -64,20 +81,29 @@ impl LogarithmicZoom {
         };
 
         let mut new_scale = scale.ln();
-        new_scale += 0.1 * scroll.y * orientation;
+        new_scale += 0.1 * event.y * orientation;
         new_scale = new_scale.exp();
 
         let scale_ratio = scale / new_scale;
         projection.scaling_mode = ScalingMode::WindowSize(1. / new_scale);
-        
+
         scale_ratio
     }
 
     fn on_mouse_wheel_event_for_perspective_projection(
+        event: &MouseWheel,
         projection: &mut PerspectiveProjection,
-        scroll: &MouseWheel,
         orientation: f32,
     ) -> f32 {
-        1.
+        let scale = projection.fov / FRAC_PI_2;
+
+        let mut new_scale = scale.ln();
+        new_scale += 0.1 * event.y * orientation;
+        new_scale = new_scale.exp();
+
+        let scale_ratio = scale / new_scale;
+        projection.fov = FRAC_PI_2.min(FRAC_PI_2 * new_scale);
+
+        scale_ratio
     }
 }
