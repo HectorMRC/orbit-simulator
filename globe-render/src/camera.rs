@@ -1,9 +1,7 @@
+use std::f32::consts::FRAC_PI_2;
+
 use alvidir::name::Name;
-use bevy::{
-    core_pipeline::{bloom::Bloom, tonemapping::Tonemapping},
-    prelude::*,
-    render::camera::ScalingMode,
-};
+use bevy::prelude::*;
 
 use crate::{
     color,
@@ -14,7 +12,6 @@ use crate::{
 /// The main camera.
 #[derive(Component, Default)]
 pub struct MainCamera {
-    pub initial_scale: f32,
     pub follow: Option<Name<globe_rs::Body>>,
 }
 
@@ -28,43 +25,40 @@ impl Plugin for MainCamera {
 
 impl MainCamera {
     /// Spawns the main camera.
-    fn spawn(mut commands: Commands, system: Res<OrbitalSystem>, window: Query<&Window>) {
-        let window = window.single();
-
+    fn spawn(mut commands: Commands, /*window: Query<&Window>,*/ system: Res<OrbitalSystem>) {
         let system_radius = system.spec.radius().as_meters() as f32;
-        let initial_scale =
-            (2. * system_radius) / window.resolution.width().min(window.resolution.height());
+
+        // let window = window.single();
+        // let initial_scale =
+        //     (2. * system_radius) / window.resolution.width().min(window.resolution.height());
 
         commands.spawn((
-            Camera3dBundle {
-                camera: Camera {
-                    clear_color: ClearColorConfig::Custom(color::NIGHT),
-                    hdr: true,
-                    ..default()
-                },
-                projection: Projection::Orthographic(OrthographicProjection {
-                    near: 0.,
-                    far: 2. * system_radius,
-                    viewport_origin: Vec2::new(0.5, 0.5),
-                    scaling_mode: ScalingMode::WindowSize(1. / initial_scale),
-                    area: Default::default(),
-                }),
-                transform: Transform::from_xyz(0., 0., system_radius)
-                    .looking_at(Vec3::new(0., 0., 0.), Dir3::Y),
-                tonemapping: Tonemapping::TonyMcMapface,
+            Camera3d::default(),
+            Camera {
+                clear_color: ClearColorConfig::Custom(color::NIGHT),
+                ..default()
+            },
+            Projection::Perspective(PerspectiveProjection {
+                fov: FRAC_PI_2,
+                near: 0.,
+                far: 2. * system_radius,
                 ..Default::default()
-            },
-            Bloom::NATURAL,
-            MainCamera {
-                initial_scale,
-                follow: None,
-            },
+            }),
+            // Projection::Orthographic(OrthographicProjection {
+            //     near: 0.,
+            //     far: 2. * system_radius,
+            //     viewport_origin: Vec2::new(0.5, 0.5),
+            //     scaling_mode: ScalingMode::WindowSize(1. / initial_scale),
+            //     area: Default::default(),
+            // }),
+            Transform::from_xyz(0., 0., system_radius).looking_at(Vec3::ZERO, Dir3::Y),
+            MainCamera { follow: None },
         ));
     }
 
     pub fn on_body_clicked(
         mut body_clicked: EventReader<Event<Body, Clicked, Body>>,
-        mut camera: Query<(&mut MainCamera, &mut Transform), With<MainCamera>>,
+        mut camera: Query<(&mut MainCamera, &mut Transform)>,
         state: Res<OrbitalSystemState>,
     ) {
         let Some(state) = body_clicked
@@ -84,10 +78,10 @@ impl MainCamera {
 
     pub fn on_body_updated(
         mut body_updated: EventReader<Event<Body, Updated, Body>>,
-        mut camera: Query<(&mut Transform, &MainCamera), With<MainCamera>>,
+        mut camera: Query<(&MainCamera, &mut Transform)>,
         state: Res<OrbitalSystemState>,
     ) {
-        let (mut transform, camera) = camera.single_mut();
+        let (camera, mut transform) = camera.single_mut();
         let Some(subject) = &camera.follow else {
             return;
         };

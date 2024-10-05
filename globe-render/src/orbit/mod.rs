@@ -6,7 +6,6 @@ use bevy::{
     pbr::CascadeShadowConfigBuilder,
     prelude::*,
     render::{
-        camera::ScalingMode,
         mesh::{AnnulusMeshBuilder, PrimitiveTopology, SphereKind, SphereMeshBuilder},
         render_asset::RenderAssetUsages,
         storage::ShaderStorageBuffer,
@@ -21,7 +20,6 @@ use globe_rs::{
 };
 
 use crate::{
-    camera::MainCamera,
     color,
     cursor::Cursor,
     event::{Clicked, Created, Deleted, Event, Updated},
@@ -87,10 +85,12 @@ impl Plugin for OrbitalSystem {
             .add_systems(Update, Self::on_orbital_system_state_update)
             .add_systems(Update, Self::spawn_body_on_body_created)
             .add_systems(Update, Self::spawn_habitable_zone_on_body_created)
-            .add_systems(Update, Self::spawn_orbit_on_body_created)
+            .add_systems(Update, Self::spawn_orbit_on_body_created_or_updated)
             .add_systems(Update, Self::on_body_updated)
             .add_systems(Update, Self::on_body_deleted)
             .add_systems(Update, Self::on_mouse_button_event)
+            .add_plugins(MaterialPlugin::<OrbitTrailMaterial>::default())
+            .add_plugins(MaterialPlugin::<RadialGradientMaterial>::default())
             .add_plugins(zoom::LogarithmicZoom)
             .add_plugins(scroll::LinearScroll);
     }
@@ -212,7 +212,7 @@ impl OrbitalSystem {
     fn on_body_deleted(
         mut commands: Commands,
         mut body_deleted: EventReader<Event<Body, Deleted, Body>>,
-        mut bodies: Query<(Entity, &Body), With<Body>>,
+        mut bodies: Query<(Entity, &Body)>,
     ) {
         body_deleted.read().for_each(|event| {
             bodies
@@ -258,7 +258,12 @@ impl OrbitalSystem {
                         color::KHAKI
                     },
                     alpha_mode: AlphaMode::Blend,
-                    // emissive: system.primary.is_luminous().then_some(color::PERSIAN_ORANGE.into()).unwrap_or_default()      ,
+                    emissive: if system.primary.is_luminous() {
+                        color::PERSIAN_ORANGE
+                    } else {
+                        Color::BLACK
+                    }
+                    .into(),
                     ..Default::default()
                 };
 
@@ -270,29 +275,27 @@ impl OrbitalSystem {
                         state.position.y() as f32,
                         state.position.z() as f32,
                     ),
+                    CascadeShadowConfigBuilder {
+                        first_cascade_far_bound: 7.0,
+                        maximum_distance: system.radius().as_meters() as f32,
+                        num_cascades: 8,
+                        ..Default::default()
+                    }
+                    .build(),
                     body,
                 ));
 
                 if system.primary.is_luminous() {
-                    entity.with_child((
-                        PointLight {
-                            radius,
-                            color: Color::WHITE,
-                            intensity: system.primary.luminosity.as_lm() as f32,
-                            range: system.radius().as_meters() as f32,
-                            shadows_enabled: true,
-                            // shadow_depth_bias: todo!(),
-                            // shadow_normal_bias: todo!(),
-                            ..Default::default()
-                        },
-                        CascadeShadowConfigBuilder {
-                            first_cascade_far_bound: 7.0,
-                            maximum_distance: system.radius().as_meters() as f32,
-                            num_cascades: 120,
-                            ..Default::default()
-                        }
-                        .build(),
-                    ));
+                    entity.with_child(PointLight {
+                        radius,
+                        color: Color::WHITE,
+                        intensity: system.primary.luminosity.as_lm() as f32,
+                        range: system.radius().as_meters() as f32,
+                        shadows_enabled: true,
+                        // shadow_depth_bias: todo!(),
+                        // shadow_normal_bias: todo!(),
+                        ..Default::default()
+                    });
                 }
             });
     }
@@ -304,20 +307,9 @@ impl OrbitalSystem {
         mut buffers: ResMut<Assets<ShaderStorageBuffer>>,
         mut materials: ResMut<Assets<RadialGradientMaterial>>,
         mut body_created: EventReader<Event<Body, Created, Body>>,
-        camera: Query<(&Projection, &MainCamera), With<MainCamera>>,
         state: Res<OrbitalSystemState>,
         system: Res<OrbitalSystem>,
     ) {
-        let (projection, camera) = camera.single();
-        let Projection::Orthographic(projection) = projection else {
-            panic!("projection must be orthographic");
-        };
-
-        let scale = match projection.scaling_mode {
-            ScalingMode::WindowSize(inv_scale) => 1. / inv_scale,
-            _ => panic!("scaling mode must be window size"),
-        };
-
         body_created
             .read()
             .filter_map(|event| {
@@ -340,7 +332,7 @@ impl OrbitalSystem {
                 let outer_radius = hz.outer_edge.as_meters() as f32;
                 let quarter = (outer_radius - inner_radius) / 4.;
 
-                let transparency = f32::min(0.1, scale / camera.initial_scale * 0.1);
+                let transparency = 0.1;
                 let mesh = AnnulusMeshBuilder {
                     annulus: Annulus::new(inner_radius, outer_radius),
                     resolution: MESH_RESOLUTION,
@@ -370,7 +362,7 @@ impl OrbitalSystem {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn spawn_orbit_on_body_created(
+    pub fn spawn_orbit_on_body_created_or_updated(
         mut commands: Commands,
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<OrbitTrailMaterial>>,
@@ -491,7 +483,7 @@ impl OrbitalSystem {
     pub fn on_mouse_button_event(
         mut body_clicked: EventWriter<Event<Body, Clicked, Body>>,
         mut mouse_button: EventReader<MouseButtonInput>,
-        bodies: Query<(&Body, &Transform), With<Body>>,
+        bodies: Query<(&Body, &Transform)>,
         system: Res<OrbitalSystem>,
         cursor: Res<Cursor>,
     ) {
@@ -512,7 +504,7 @@ impl OrbitalSystem {
                     .map(|system| (system, body, transform))
             })
             .filter(|(system, _, transform)| {
-                transform.translation.distance(cursor.position)
+                transform.translation.xy().distance(cursor.position.xy())
                     <= system.primary.radius.as_meters() as f32
             })
             .map(|(_, body, _)| body)
