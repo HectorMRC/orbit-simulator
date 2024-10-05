@@ -85,10 +85,12 @@ impl Plugin for OrbitalSystem {
             .add_systems(Update, Self::on_orbital_system_state_update)
             .add_systems(Update, Self::spawn_body_on_body_created)
             .add_systems(Update, Self::spawn_habitable_zone_on_body_created)
-            .add_systems(Update, Self::spawn_orbit_on_body_created)
+            .add_systems(Update, Self::spawn_orbit_on_body_created_or_updated)
             .add_systems(Update, Self::on_body_updated)
             .add_systems(Update, Self::on_body_deleted)
             .add_systems(Update, Self::on_mouse_button_event)
+            .add_plugins(MaterialPlugin::<OrbitTrailMaterial>::default())
+            .add_plugins(MaterialPlugin::<RadialGradientMaterial>::default())
             .add_plugins(zoom::LogarithmicZoom)
             .add_plugins(scroll::LinearScroll);
     }
@@ -256,7 +258,12 @@ impl OrbitalSystem {
                         color::KHAKI
                     },
                     alpha_mode: AlphaMode::Blend,
-                    // emissive: system.primary.is_luminous().then_some(color::PERSIAN_ORANGE.into()).unwrap_or_default()      ,
+                    emissive: if system.primary.is_luminous() {
+                        color::PERSIAN_ORANGE
+                    } else {
+                        Color::BLACK
+                    }
+                    .into(),
                     ..Default::default()
                 };
 
@@ -268,29 +275,27 @@ impl OrbitalSystem {
                         state.position.y() as f32,
                         state.position.z() as f32,
                     ),
+                    CascadeShadowConfigBuilder {
+                        first_cascade_far_bound: 7.0,
+                        maximum_distance: system.radius().as_meters() as f32,
+                        num_cascades: 8,
+                        ..Default::default()
+                    }
+                    .build(),
                     body,
                 ));
 
                 if system.primary.is_luminous() {
-                    entity.with_child((
-                        PointLight {
-                            radius,
-                            color: Color::WHITE,
-                            intensity: system.primary.luminosity.as_lm() as f32,
-                            range: system.radius().as_meters() as f32,
-                            shadows_enabled: true,
-                            // shadow_depth_bias: todo!(),
-                            // shadow_normal_bias: todo!(),
-                            ..Default::default()
-                        },
-                        CascadeShadowConfigBuilder {
-                            first_cascade_far_bound: 7.0,
-                            maximum_distance: system.radius().as_meters() as f32,
-                            num_cascades: 120,
-                            ..Default::default()
-                        }
-                        .build(),
-                    ));
+                    entity.with_child(PointLight {
+                        radius,
+                        color: Color::WHITE,
+                        intensity: system.primary.luminosity.as_lm() as f32,
+                        range: system.radius().as_meters() as f32,
+                        shadows_enabled: true,
+                        // shadow_depth_bias: todo!(),
+                        // shadow_normal_bias: todo!(),
+                        ..Default::default()
+                    });
                 }
             });
     }
@@ -356,13 +361,14 @@ impl OrbitalSystem {
             });
     }
 
-    pub fn spawn_orbit_on_body_created(
+    #[allow(clippy::too_many_arguments)]
+    pub fn spawn_orbit_on_body_created_or_updated(
         mut commands: Commands,
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<OrbitTrailMaterial>>,
         mut body_created: EventReader<Event<Body, Created, Body>>,
         mut body_updated: EventReader<Event<Body, Updated, Body>>,
-        orbits: Query<(Entity, &Body)>,
+        orbits: Query<(Entity, &Body), With<Orbit>>,
         state: Res<OrbitalSystemState>,
         stats: Res<OrbitalSystemStats>,
         system: Res<OrbitalSystem>,

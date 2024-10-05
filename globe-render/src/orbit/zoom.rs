@@ -31,7 +31,7 @@ impl LogarithmicZoom {
 
         let (camera, mut transform, mut projection) = camera.single_mut();
 
-        for event in scroll.read() {
+        scroll.read().for_each(|event| {
             let orientation = match event.unit {
                 MouseScrollUnit::Line => -1., // using hardware with fixed steps (e.g. mice wheel)
                 MouseScrollUnit::Pixel => 1., // using fine-grained hardware (e.g. touchpads)
@@ -62,7 +62,7 @@ impl LogarithmicZoom {
                 transform.translation.x += translation.x;
                 transform.translation.y += translation.y;
             }
-        };
+        });
     }
 
     fn on_mouse_wheel_event_for_orthographic_projection(

@@ -25,8 +25,12 @@ impl Plugin for MainCamera {
 
 impl MainCamera {
     /// Spawns the main camera.
-    fn spawn(mut commands: Commands, system: Res<OrbitalSystem>) {
+    fn spawn(mut commands: Commands, /*window: Query<&Window>,*/ system: Res<OrbitalSystem>) {
         let system_radius = system.spec.radius().as_meters() as f32;
+
+        // let window = window.single();
+        // let initial_scale =
+        //     (2. * system_radius) / window.resolution.width().min(window.resolution.height());
 
         commands.spawn((
             Camera3d::default(),
@@ -40,8 +44,14 @@ impl MainCamera {
                 far: 2. * system_radius,
                 ..Default::default()
             }),
-            Transform::from_xyz(0., 0., system_radius)
-                .looking_at(Vec3::ZERO, Dir3::Y),
+            // Projection::Orthographic(OrthographicProjection {
+            //     near: 0.,
+            //     far: 2. * system_radius,
+            //     viewport_origin: Vec2::new(0.5, 0.5),
+            //     scaling_mode: ScalingMode::WindowSize(1. / initial_scale),
+            //     area: Default::default(),
+            // }),
+            Transform::from_xyz(0., 0., system_radius).looking_at(Vec3::ZERO, Dir3::Y),
             MainCamera { follow: None },
         ));
     }

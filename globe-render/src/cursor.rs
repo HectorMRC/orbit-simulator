@@ -33,7 +33,7 @@ impl Cursor {
             .and_then(|cursor| match projection {
                 Projection::Perspective(projection) => {
                     Cursor::into_world_coords_for_perspective_projection(
-                        cursor, &window, projection, transform,
+                        cursor, window, projection, transform,
                     )
                 }
                 Projection::Orthographic(_) => {
