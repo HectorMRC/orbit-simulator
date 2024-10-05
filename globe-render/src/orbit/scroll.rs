@@ -27,13 +27,7 @@ impl LinearScroll {
             return;
         }
 
-        scroll.read().for_each(|event| {
-            if keys.pressed(KeyCode::ControlLeft) {
-                // left ctrl key is reserved for zooming
-                return;
-            }
-
-            let (mut camera, mut transform, projection) = camera_query.single_mut();
+        let (mut camera, mut transform, projection) = camera_query.single_mut();
             let scale = match projection {
                 Projection::Orthographic(projection) => match projection.scaling_mode {
                     ScalingMode::WindowSize(inv_scale) => 10. / inv_scale,
@@ -45,9 +39,10 @@ impl LinearScroll {
                 }
             };
 
+        for event in scroll.read() {
             camera.follow = None;
             transform.translation.x -= event.x * scale;
             transform.translation.y += event.y * scale;
-        });
+        };
     }
 }

@@ -1,6 +1,4 @@
-use bevy::{prelude::*, window::PrimaryWindow};
-
-use crate::camera::MainCamera;
+use bevy::{input::mouse::MouseMotion, prelude::*, window::PrimaryWindow};
 
 /// The world position of the mouse cursor.
 #[derive(Component, Resource, Default, Clone, Copy)]
@@ -18,12 +16,17 @@ impl Plugin for Cursor {
 impl Cursor {
     /// Updates the [Cursor] resource with the corresponding world-coordinates.
     fn into_world_coords(
+        mut motion: EventReader<MouseMotion>,
         mut cursor_coords: ResMut<Cursor>,
         window: Query<&Window, With<PrimaryWindow>>,
-        camera: Query<(&Camera, &Projection, &GlobalTransform), With<MainCamera>>,
+        camera: Query<(&Camera, &Projection, &GlobalTransform)>,
     ) {
         let (camera, projection, transform) = camera.single();
         let window = window.single();
+
+        if motion.read().last().is_none() {
+            return;
+        }
 
         if let Some(world_position) = window
             .cursor_position()

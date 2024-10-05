@@ -88,7 +88,7 @@ impl Plugin for OrbitalSystem {
             .add_systems(Update, Self::spawn_orbit_on_body_created)
             .add_systems(Update, Self::on_body_updated)
             .add_systems(Update, Self::on_body_deleted)
-            .add_systems(Update, Self::on_mouse_button_event)
+            .add_systems(Update, Self::on_mouse_button_event);
             .add_plugins(zoom::LogarithmicZoom)
             .add_plugins(scroll::LinearScroll);
     }
@@ -498,7 +498,7 @@ impl OrbitalSystem {
                     .map(|system| (system, body, transform))
             })
             .filter(|(system, _, transform)| {
-                transform.translation.distance(cursor.position)
+                transform.translation.xy().distance(cursor.position.xy())
                     <= system.primary.radius.as_meters() as f32
             })
             .map(|(_, body, _)| body)
