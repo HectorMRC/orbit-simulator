@@ -40,7 +40,7 @@ impl MainCamera {
             },
             Projection::Perspective(PerspectiveProjection {
                 fov: FRAC_PI_2,
-                near: 0.,
+                near: 1., // near == 0. may arise issues    
                 far: 2. * system_radius,
                 ..Default::default()
             }),
