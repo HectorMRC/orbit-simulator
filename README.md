@@ -1,4 +1,4 @@
-> [!About]  
+> [!Note]  
 > This project is a fork of [`globe-rs`](https://github.com/HectorMRC/globe-rs).
 
 # globe-rs
