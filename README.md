@@ -1,3 +1,6 @@
+> [!About]  
+> This project is a fork of [`globe-rs`](https://github.com/HectorMRC/globe-rs).
+
 # globe-rs
 
 [![Continuos Integration](https://github.com/hectormrc/globe-rs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hectormrc/globe-rs/actions/workflows/ci.yml)
